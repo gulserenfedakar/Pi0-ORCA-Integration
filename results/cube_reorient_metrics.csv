@@ -1,0 +1,6 @@
+Experiment,Mode,Camera,Trials,Inference_Latency_ms,E2E_Control_Latency_ms,Completion_Time_s,Goal_Align_Rate_pct,Mean_Hold_Streak_steps,Task_Success_Rate_pct,Cube_Drop_Rate_pct,Min_Angle_Error_deg,Final_Angle_Error_deg
+1. Standalone π0 — Naive Direct Mapping (No Relative/Synergy),direct_17dof,palm_front,2,302.5,459.18,2.3,0.0,0.0,0.0,100.0,30.09,30.09
+2. Standalone π0 — Relative Control + 17-DoF Synergy (Front Cam),synergy_reorient,palm_front,2,287.13,443.12,4.43,0.0,0.0,0.0,0.0,72.93,90.2
+3. Standalone π0 — Relative Control + 17-DoF Synergy (Top Cam),synergy_reorient,palm_top,2,289.35,446.57,4.47,0.0,0.0,0.0,0.0,72.96,90.41
+4. Hybrid π0 + RL (PPO) — High-Level VLA + Low-Level RL (Nominal 180° Flip),pi0_rl_hybrid,palm_front,2,289.16,444.09,4.44,100.0,25.0,100.0,0.0,2.83,13.81
+5. Hybrid π0 + RL (PPO) — High-Level VLA + Low-Level RL (Randomized 5 Trials),pi0_rl_hybrid,palm_front,5,295.62,450.47,4.03,100.0,20.6,80.0,20.0,7.26,18.98
