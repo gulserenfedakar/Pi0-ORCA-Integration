@@ -36,7 +36,10 @@ Pi0-ORCA-Integration/
 ├── scripts/
 │   ├── check_gpu_environment.py    # Hardware, VRAM, and headless EGL rendering verification
 │   ├── run_cube_reorient.py        # Closed-loop runner for 17-DoF in-hand cube reorientation
-│   └── benchmark_cube_reorient.py  # 5-level evaluation suite for 17-DoF in-hand reorientation
+│   ├── benchmark_cube_reorient.py  # 5-level evaluation suite for 17-DoF in-hand reorientation
+│   ├── train_rl_reorient.py        # Matched multi-core RL trainer (PPO, SAC, TD3)
+│   ├── evaluate_rl_reorient.py     # Comparative evaluation script for trained RL policies
+│   └── slurm_drac_rl_benchmark.sh  # Slurm job array for 10M-step training on DRAC Nibi CPU cluster
 ├── models/
 │   └── ppo_cube_reorient.zip       # Pretrained Stable-Baselines3 PPO policy for 17-DoF cube reorientation
 ├── results/
@@ -47,7 +50,8 @@ Pi0-ORCA-Integration/
 │   └── test_hybrid_reorient.py     # Closed-loop integration test for 17-DoF cube reorientation and 25-step hold
 ├── docs/
 │   ├── ARCHITECTURE.md             # Technical specification of the observation, action, and hybrid RL layers
-│   └── BENCHMARKS.md               # Full experimental protocol, hardware profile, and failure analysis
+│   ├── BENCHMARKS.md               # Full experimental protocol, hardware profile, and failure analysis
+│   └── DRAC_CLUSTER_GUIDE.md       # Instructions for 10M-step RL training on the DRAC Nibi cluster
 └── pyproject.toml
 ```
 
@@ -146,6 +150,7 @@ Task criterion: rotate the cube from a non-solved initial orientation (`down` at
 
 * [System Architecture & Control Design (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md)
 * [Benchmark Protocol & Failure Analysis (`docs/BENCHMARKS.md`)](docs/BENCHMARKS.md)
+* [DRAC Nibi Cluster RL Training Guide (`docs/DRAC_CLUSTER_GUIDE.md`)](docs/DRAC_CLUSTER_GUIDE.md)
 
 ## License
 
