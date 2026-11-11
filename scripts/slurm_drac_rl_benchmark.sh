@@ -21,7 +21,7 @@ SEED="${SEED:-0}"
 mkdir -p logs runs
 
 if command -v module &>/dev/null; then
-    module load python/3.11 scipy-stack mujoco 2>/dev/null || true
+    module load python/3.11 2>/dev/null || true
 fi
 
 if [ -f "$HOME/orca_rl_venv/bin/activate" ]; then
@@ -30,6 +30,7 @@ elif [ -f ".venv/bin/activate" ]; then
     source ".venv/bin/activate"
 fi
 
+export MUJOCO_GL=egl
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export ORCA_SIM_ROOT="${ORCA_SIM_ROOT:-$HOME/SEP730-Dexterous-Hand-Simulation}"

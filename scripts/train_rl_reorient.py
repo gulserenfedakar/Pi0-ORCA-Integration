@@ -159,8 +159,13 @@ def main() -> None:
     )
 
     env_kwargs = dict(action=args.action, max_delta_frac=args.max_delta_frac)
-    vec_cls = SubprocVecEnv if args.n_envs > 1 else DummyVecEnv
-    train_env = vec_cls([make_env(args.init, args.seed + i, **env_kwargs) for i in range(args.n_envs)])
+    if args.n_envs > 1:
+        train_env = SubprocVecEnv(
+            [make_env(args.init, args.seed + i, **env_kwargs) for i in range(args.n_envs)],
+            start_method="fork",
+        )
+    else:
+        train_env = DummyVecEnv([make_env(args.init, args.seed, **env_kwargs)])
     train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True, clip_obs=10.0, gamma=0.99)
 
     eval_env = DummyVecEnv([make_env(args.init, 10_000 + args.seed, **env_kwargs)])
