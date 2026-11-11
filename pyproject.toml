@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pi0-orca-integration"
+version = "0.2.0"
+description = "Closed-loop Vision-Language-Action (pi0) and Hybrid RL control for the 17-DoF ETH ORCA Dexterous Hand in MuJoCo"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Gulseren Fedakar Gonul", email = "fedakarg@mcmaster.ca"}
+]
+dependencies = [
+    "numpy>=1.26.0",
+    "mujoco>=3.2.0",
+    "gymnasium>=0.29.0",
+    "pillow>=10.0.0",
+    "stable-baselines3>=2.3.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["orca_vla*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
