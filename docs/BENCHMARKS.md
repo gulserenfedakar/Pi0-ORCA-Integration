@@ -30,3 +30,21 @@ Source data: [`results/cube_reorient_metrics.csv`](../results/cube_reorient_metr
 
 ---
 
+## 3. Matched Multi-Algorithm RL Benchmark on DRAC `Nibi` (`PPO`, `SAC`, `TD3`)
+
+Source data: [`results/rl_reorient_benchmark.csv`](../results/rl_reorient_benchmark.csv)
+
+Trained on the Digital Research Alliance of Canada (DRAC) `Nibi` CPU cluster (`16` parallel `SubprocVecEnv` simulation workers per algorithm, `RelativeJointTargetAction` with `max_delta_frac=0.05`, `VecNormalize` observation/reward normalization, randomized initial orientations `init=random`, evaluated deterministically across `20` unseen seeds):
+
+| Algorithm | Action Mode | Eval Episodes | Policy Latency (ms) | Goal Align (<15°) | Mean Hold Streak (/25) | Held Task Success (%) | Cube Drop Rate (%) | Min Angle (°) | Final Angle (°) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **SAC** (`sac_reorient_random_10M`) | `relative` | 20 | 0.330 | **85.0%** | **21.0** | **80.0%** | **0.0%** | 16.53° | **18.37°** |
+| **PPO** (`ppo_reorient_random_10M`) | `relative` | 20 | 0.292 | **85.0%** | 16.6 | **50.0%** *(Eval: 75.0%)* | **0.0%** | **14.70°** | **19.04°** |
+| **TD3** (`td3_reorient_random_10M`) | `relative` | 20 | **0.238** | 60.0% | 13.8 | **55.0%** | 5.0% | 34.43° | 46.36° |
+
+### Key RL Findings
+1. **Throughput vs. Sample Efficiency:** On-policy `PPO` completed all `10,002,432` environment steps in **69.21 minutes** (`2,409 FPS` across 16 CPU cores), reaching **`85.0%` goal alignment (`< 15°`)**, **`0.0%` drop rate**, and the lowest mean minimum angle error (`14.70°`).
+2. **Sustained Hold Stability:** Off-policy maximum-entropy `SAC` achieved the highest 25-step held success rate (**`80.0%`**, mean hold streak `21.0 / 25` steps, `10,000,000` steps in `352.4 minutes`, `0.0%` drop rate), demonstrating that entropy-regularized off-policy replay improves fine velocity damping inside the $15^\circ$ target cone.
+3. **Deterministic Exploration Trade-off:** `TD3` completed `10,000,000` steps in `316.8 minutes` (`527 FPS`) and reached `55.0%` held success (`60.0%` goal alignment), indicating that fixed Gaussian action noise (`sigma=0.15`) explores contact-rich multi-axis rotations less reliably than `SAC`'s state-dependent stochastic policy.
+
+

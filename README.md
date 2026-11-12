@@ -144,6 +144,14 @@ Task criterion: rotate the cube from a non-solved initial orientation (`down` at
 | **4. Hybrid $\pi_0$ + RL (PPO) — Nominal $180^\circ$ Flip** | `palm_front` | 289.16 | 444.09 | 4.44 | 100.0% | 25.0 | **100.0%** | 0.0% | 13.81° |
 | **5. Hybrid $\pi_0$ + RL (PPO) — Randomized 5 Orientations** | `palm_front` | 295.62 | 450.47 | 4.03 | 100.0% | 20.6 | **80.0%** | 20.0% | 18.98° |
 
+### Matched Multi-Algorithm RL Benchmark (DRAC `Nibi` Cluster — 16 CPU Cores per Algorithm)
+
+| RL Algorithm | Action Mode | Episodes (`init=random`) | Policy Latency (ms) | Goal Align ($<15^\circ$) | Mean Hold Streak (/25) | Held Task Success (%) | Cube Drop Rate (%) | Min Angle Error ($^\circ$) | Final Angle Error ($^\circ$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **SAC** (`sac_reorient_random_10M`) | `relative` | 20 | 0.330 | **85.0%** | **21.0** | **80.0%** | **0.0%** | 16.53° | **18.37°** |
+| **PPO** (`ppo_reorient_random_10M`) | `relative` | 20 | 0.292 | **85.0%** | 16.6 | **50.0%** *(Eval: 75.0%)* | **0.0%** | **14.70°** | **19.04°** |
+| **TD3** (`td3_reorient_random_10M`) | `relative` | 20 | **0.238** | 60.0% | 13.8 | **55.0%** | 5.0% | 34.43° | 46.36° |
+
 ---
 
 ## Documentation

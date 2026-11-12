@@ -1,0 +1,4 @@
+Run,Algorithm,Init,Action_Mode,Episodes,Policy_Latency_ms,Goal_Align_Rate_pct,Mean_Hold_Streak_steps,Held_Success_Rate_pct,Cube_Drop_Rate_pct,Min_Angle_Error_deg,Final_Angle_Error_deg
+ppo_reorient_random_10M,PPO,random,relative,20,0.292,85.0,16.6,50.0,0.0,14.7,19.04
+sac_reorient_random_10M,SAC,random,relative,20,0.33,85.0,21.0,80.0,0.0,16.53,18.37
+td3_reorient_random_10M,TD3,random,relative,20,0.238,60.0,13.8,55.0,5.0,34.43,46.36
