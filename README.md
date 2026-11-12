@@ -21,6 +21,9 @@ This repository implements the observation pipeline, 17-DoF in-hand synergy adap
 | :---: | :---: | :---: |
 | ![Default View](assets/cube_reorient_default_cam.png) | ![Palm Front View](assets/cube_reorient_front_cam.png) | ![Palm Top View](assets/cube_reorient_top_cam.png) |
 
+### In-Hand Cube Reorientation Rollout Demonstration (10M-Step SAC Policy)
+![17-DoF In-Hand Cube Reorientation](assets/sac_reorient_demo.gif)
+
 ---
 
 ## Repository Structure
