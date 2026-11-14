@@ -33,7 +33,7 @@ fi
 export MUJOCO_GL=egl
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
-export ORCA_SIM_ROOT="${ORCA_SIM_ROOT:-$HOME/SEP730-Dexterous-Hand-Simulation}"
+export ORCA_SIM_ROOT="${ORCA_SIM_ROOT:-$HOME/ORCA-Dexterous-Hand-Simulation}"
 
 echo "Starting matched RL benchmark: algo=${ALGO}, steps=${STEPS}, n_envs=${N_ENVS}, init=${INIT_MODE}"
 python scripts/train_rl_reorient.py \

@@ -1,8 +1,7 @@
 # Comprehensive Experimental Benchmark & Cluster Report
-**Project:** SEP 730 — The Rise of Intelligent Machines (Group 1)  
 **Investigation:** 17-DoF ETH ORCA Dexterous Hand In-Hand Cube Reorientation (`OrcaHandRightCubeOrientation`)  
-**Lead Contributor:** Gulseren Fedakar Gonul (`fedakarg@mcmaster.ca`)  
-**Computing Clusters:** Digital Research Alliance of Canada (DRAC) `Nibi` Cluster & Local NVIDIA RTX 4070 (8 GB) Platform  
+**Author:** Gulseren Fedakar Gonul  
+**Computing Platforms:** Digital Research Alliance of Canada (DRAC) `Nibi` Cluster & Local NVIDIA RTX 4070 (8 GB) Platform  
 
 ---
 
@@ -11,14 +10,10 @@
 This report documents the experimental evaluation of high-degree-of-freedom dexterous manipulation using Physical Intelligence's Vision-Language-Action model ($\pi_0$) and deep reinforcement learning (RL) policies on the **17-DoF ETH ORCA Hand**. 
 
 Direct end-to-end VLA deployment on dexterous multi-finger hardware faces two fundamental bottlenecks:
-1. **Embodiment and Action Space Discrepancy:** $\pi_0$ is pretrained primarily on standard robotic arms with 1-DoF parallel-jaw grippers. Mapping VLA outputs directly to 17 coupled tendon actuators causes severe joint oscillations, wrist drop, and instant object ejection (100% drop rate).
+1. **Embodiment and Action Space Discrepancy:** $\pi_0$ outputs low-dimensional 7D action chunks designed for 1-DoF parallel-jaw grippers. Mapping VLA outputs directly to 17 coupled tendon actuators causes severe joint oscillations, wrist drop, and instant object ejection (100% drop rate).
 2. **Control Latency vs. Contact Frequency:** 3B-parameter VLA inference runs at ~3.5 Hz on consumer GPU hardware, whereas fine finger gaiting and velocity damping require control frequencies of $\ge 20\text{ Hz}$.
 
 To overcome these limitations, we designed a **hierarchical architecture** where high-level visual semantic guidance ($\pi_0$) is coupled with high-frequency relative joint control and deep RL policies trained at scale on the Digital Research Alliance of Canada (DRAC) `Nibi` cluster across 10,000,000 steps.
-
-### Project Progression & Team Integration (SEP 730 — Group 1)
-- **Phase 1 (Midterm — 24-DoF Arm+Hand Tabletop Pick-and-Place, `scene_right_arm_tabletop.xml`):** Validated `pi0_libero` spatial reaching (`269 ms` inference latency, `100%` front-camera reach vs. `0%` side-camera sensitivity) and `BEST_GRASP` synergy lifting (`100%` nominal, `80%` randomized).
-- **Phase 2 (Post-Midterm / Final — 17-DoF Hand-Only In-Hand Cube Reorientation, `OrcaHandRightCubeOrientation`):** Aligned simulation with our physical 17-DoF ORCA hand hardware (which operates as a stationary dexterous hand without a Franka arm), building on the shared simulation environment and relative action wrappers by **Yuhui (Joe) Wu**, the `OpenVLA-7B` (`2,144.7 ms`) and initial 200K-step `SAC` (`16%` success) baselines by **Yi Liu**, and the modular `orca_vla` observation/action interfaces co-designed with **Debaditya Ghosh** ($\pi_{0.5}$).
 
 ---
 
@@ -58,8 +53,8 @@ To overcome these limitations, we designed a **hierarchical architecture** where
 
 1. **Why Pure Zero-Shot VLA Fails on Dexterous Hands:**
    Direct actuator mapping causes catastrophic wrist deflection within 25 steps (`100%` drop rate). Adding a relative joint boundary (`RelativeJointTargetAction`) and palmar synergy (`in_hand_synergy_delta`) eliminates drops (`0%` drop rate) and initiates rotation (`90° → 72.9°`), but 3.5 Hz flow-matching outputs alone cannot sustain the 20 Hz multi-finger contact gaiting required to complete a $180^\circ$ flip.
-2. **Resolving the Midterm 200K-Step SAC Bottleneck & Why SAC Outperforms PPO in Sustained Holding:**
-   At the Midterm, `SAC` appeared stuck at `16%` after `200,000` (`0.2M`) steps because off-policy replay buffers require `~2M–4M` steps to populate contact transitions across 17 degrees of freedom. Scaling to `10,000,000` steps on DRAC `Nibi` shows that while on-policy `PPO` trains **5.1× faster** (`69.2 min` at `2,409 FPS`) and reaches the `<15°` cone at the same **`85.0%` rate** as `SAC` (`95.0%` peak `EvalCallback`), `PPO` experiences minor finger micro-oscillation (`||ω|| > 1.0 rad/s`) after `10–12` hold steps on side-axis rotations (`50.0%` 25-step hold on unseen seeds). Off-policy maximum-entropy `SAC` learns smoother terminal velocity damping, achieving **`80.0%` 25-step held success** (`90.0%` `EvalCallback`) with `0.0%` drops.
+2. **Resolving the Short-Horizon (200K-Step) SAC Bottleneck & Why SAC Outperforms PPO in Sustained Holding:**
+   Under short-horizon training (`200,000` / `0.2M` steps), `SAC` appears stuck near `16%` success because off-policy replay buffers require `~2M–4M` steps to populate contact transitions across 17 degrees of freedom. Scaling to `10,000,000` steps on DRAC `Nibi` shows that while on-policy `PPO` trains **5.1× faster** (`69.2 min` at `2,409 FPS`) and reaches the `<15°` cone at the same **`85.0%` rate** as `SAC` (`95.0%` peak `EvalCallback`), `PPO` experiences minor finger micro-oscillation (`||ω|| > 1.0 rad/s`) after `10–12` hold steps on side-axis rotations (`50.0%` 25-step hold on unseen seeds). Off-policy maximum-entropy `SAC` learns smoother terminal velocity damping, achieving **`80.0%` 25-step held success** (`90.0%` `EvalCallback`) with `0.0%` drops.
 3. **Complementary Roles in the Hierarchical Hybrid ($\pi_0$ + RL) Architecture:**
    While a standalone RL policy relies on 43D proprioceptive state and cannot interpret natural-language task instructions, coupling high-level $\pi_0$ visual-language grounding, bounded residual modulation, and discrete phase gating (`FLIP_180`, `ROLL_X`, `ROLL_Y`, `HOLD_STILL`) with 20 Hz low-level relative-joint skill/RL execution achieves **`100.0%` held success** on the nominal $180^\circ$ flip and **`80.0%` held success** (`100.0%` goal alignment) across all five canonical initial cube orientations.
 

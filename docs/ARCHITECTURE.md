@@ -2,7 +2,7 @@
 
 ## 1. Problem Formulation
 
-The ETH ORCA hand is a 17-DoF tendon-driven anthropomorphic hand comprising a 1-DoF wrist pitch actuator, four 3-DoF fingers (index, middle, ring, pinky; abduction, MCP flexion, PIP flexion), and a 4-DoF thumb (CMC opposition, abduction, MCP flexion, PIP flexion). In contrast, open-source Vision-Language-Action checkpoints in the `openpi` ecosystem (`pi0_libero` and `pi0_droid`) are trained on 7-DoF robot arms equipped with a 1-DoF parallel-jaw gripper:
+The ETH ORCA hand is a 17-DoF tendon-driven anthropomorphic hand comprising a 1-DoF wrist pitch actuator, four 3-DoF fingers (index, middle, ring, pinky; abduction, MCP flexion, PIP flexion), and a 4-DoF thumb (CMC opposition, abduction, MCP flexion, PIP flexion). In contrast, open-source Vision-Language-Action checkpoints in the `openpi` ecosystem (`pi0_libero` and `pi0_droid`) are pretrained with a 7D action space designed for 1-DoF parallel-jaw grippers:
 
 * **Input Observation Space (`pi0_libero`):**
   * `observation/image`: Exterior RGB camera (`224 x 224 x 3`, `uint8`)

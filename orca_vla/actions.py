@@ -61,7 +61,7 @@ class OrcaVLAActionAdapter:
         t_abd: float | None = None,
         t_curl: float | None = None,
     ) -> np.ndarray:
-        """Joe Wu's parametric 17-DOF ORCA hand synergy pose (from pick_place_lib.py).
+        """Parametric 17-DoF ORCA hand synergy pose.
         Drives finger MCP/PIP joints and thumb flexion to `curl` fraction of their upper limit,
         while holding thumb CMC and abduction at stable opposition angles.
         """

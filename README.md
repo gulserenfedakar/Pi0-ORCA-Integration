@@ -1,14 +1,12 @@
 # Pi0-ORCA-Integration
 
-Closed-loop Vision-Language-Action ($\pi_0$) and hierarchical Reinforcement Learning (PPO) control for the 17-DoF ETH ORCA dexterous robotic hand in MuJoCo.
-
-Developed as part of the **SEP 730 — Dexterous Hand Technical Challenge & Future Application** research project at McMaster University.
+Closed-loop Vision-Language-Action ($\pi_0$) and hierarchical Reinforcement Learning (`PPO`, `SAC`, `TD3`) control for the 17-DoF ETH ORCA dexterous robotic hand in MuJoCo.
 
 ---
 
 ## Overview
 
-Pretrained Vision-Language-Action (VLA) foundation models such as Physical Intelligence's $\pi_0$ (`pi0_libero`, `pi0_droid`, `pi0_base`) output low-dimensional action chunks tailored to standard 7-DoF robotic arms with 1-DoF parallel-jaw grippers. Directly applying these predictions to a high-degree-of-freedom, tendon-driven anthropomorphic hand (the 17-DoF ETH ORCA hand) introduces two primary control bottlenecks:
+Pretrained Vision-Language-Action (VLA) foundation models such as Physical Intelligence's $\pi_0$ (`pi0_libero`, `pi0_droid`, `pi0_base`) output low-dimensional 7D action chunks designed for 1-DoF parallel-jaw grippers. Directly applying these predictions to a high-degree-of-freedom, tendon-driven anthropomorphic hand (the 17-DoF ETH ORCA hand) introduces two primary control bottlenecks:
 
 1. **Embodiment and Action-Space Mismatch:** Mapping a 1D gripper command or raw 7D Cartesian delta directly to 17 coupled finger and thumb actuators produces uncoordinated joint excursions, finger chattering, and immediate object ejection.
 2. **Contact-Rich In-Hand Manipulation Dynamics:** Tasks such as in-hand cube reorientation require continuous multi-finger gaiting and velocity damping at 20 Hz, whereas 3B-parameter VLA inference operates at approximately 3.5–3.7 Hz on consumer GPU hardware.
@@ -73,20 +71,19 @@ All experiments in this repository were developed and verified on an 8 GB consum
 
 ## Installation and Setup
 
-### 1. Clone the Simulation Environment and OpenPI Runtime
+### 1. Clone the Repository and Configure the Simulation Environment
 
-This package expects the shared MuJoCo simulation repository ([SEP730-Dexterous-Hand-Simulation](https://github.com/joewukingdom/SEP730-Dexterous-Hand-Simulation)) and the [openpi](https://github.com/Physical-Intelligence/openpi) environment:
+This package interfaces with the `orca_sim` MuJoCo simulation package (`OrcaHandRightCubeOrientation`) and the [openpi](https://github.com/Physical-Intelligence/openpi) runtime:
 
 ```bash
-git clone https://github.com/joewukingdom/SEP730-Dexterous-Hand-Simulation.git ~/SEP730-Dexterous-Hand-Simulation
 git clone https://github.com/gulserenfedakar/Pi0-ORCA-Integration.git ~/Pi0-ORCA-Integration
 cd ~/Pi0-ORCA-Integration
 ```
 
-If `SEP730-Dexterous-Hand-Simulation` is located in a non-default directory, export `ORCA_SIM_ROOT`:
+Set `ORCA_SIM_ROOT` to point to your local `orca_sim` MuJoCo simulation directory if it is not installed in your Python environment:
 
 ```bash
-export ORCA_SIM_ROOT=/path/to/SEP730-Dexterous-Hand-Simulation
+export ORCA_SIM_ROOT=/path/to/orca-hand-simulation
 ```
 
 ### 2. Install Package and Dependencies

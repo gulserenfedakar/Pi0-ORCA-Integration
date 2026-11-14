@@ -20,17 +20,15 @@ import pandas as pd
 from PIL import Image
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str((REPO_ROOT.parent / "SEP730-Dexterous-Hand-Simulation" / "src").resolve()))
+for _cand in sorted(REPO_ROOT.parent.glob("*Dexterous-Hand-Simulation*")):
+    sys.path.insert(0, str((_cand / "src").resolve()))
 sys.path.insert(0, str(REPO_ROOT))
 
 OUT_DIRS = [
     REPO_ROOT / "assets" / "slides",
-    Path("/mnt/c/Users/suat4/Projects/Pi0-ORCA-Integration/assets/slides"),
-    Path("/mnt/c/Users/suat4/Projects/openpiGulseren/docs/slides"),
-    Path("/home/gulseren/.gemini/antigravity-cli/brain/fc5e3b09-22e2-4a49-a1be-eb14565c1396"),
 ]
 
-# McMaster / clean engineering palette
+# Clean engineering color palette
 MAROON = "#7A003C"
 GOLD = "#FDBF57"
 NAVY = "#1E293B"
@@ -56,7 +54,7 @@ def add_header(fig, title: str, subtitle: str, slide_num: int):
     header_ax.add_patch(patches.Rectangle((0, 0), 1, 0.06, color=GOLD, transform=header_ax.transAxes))
     header_ax.text(
         0.025, 0.64, title,
-        color="white", fontsize=18.0, fontweight="bold", va="center", ha="left",
+        color="white", fontsize=17.0, fontweight="bold", va="center", ha="left",
         family="DejaVu Sans",
     )
     header_ax.text(
@@ -65,8 +63,8 @@ def add_header(fig, title: str, subtitle: str, slide_num: int):
         family="DejaVu Sans",
     )
     header_ax.text(
-        0.975, 0.64, f"SEP 730 — Group 1  |  Slide {slide_num}/4",
-        color="white", fontsize=11.0, fontweight="bold", va="center", ha="right",
+        0.975, 0.64, f"π₀ + 17-DoF ORCA Hand  |  Slide {slide_num}/4",
+        color="white", fontsize=10.5, fontweight="bold", va="center", ha="right",
         family="DejaVu Sans",
     )
 
@@ -159,7 +157,7 @@ def make_slide_1():
     draw_box(
         diag_ax, 3, 66, 27, 22,
         "Pathway A: Naive Standalone VLA",
-        "π₀ (3B Flow-Matching)\n~289 ms/chunk (~3.5 Hz)\n7D Arm/Gripper Output\n(Mismatch for 17 Tendons)",
+        "π₀ (3B Flow-Matching)\n~289 ms/chunk (~3.5 Hz)\n7D Parallel-Gripper Output\n(Mismatch for 17 Tendons)",
         "#FEF2F2", RED,
     )
     diag_ax.annotate("", xy=(36, 77), xytext=(30.5, 77), arrowprops=dict(arrowstyle="->", lw=2.5, color=RED))
@@ -357,7 +355,7 @@ def make_slide_3():
     add_header(
         fig,
         "3. DRAC Nibi Cluster: 10M-Step Matched RL Benchmark (PPO vs. SAC vs. TD3)",
-        "Resolving the Midterm 200K-Step Bottleneck via 16-Core Parallel MuJoCo Training under RelativeJointTargetAction",
+        "Resolving the 200K-Step Short-Horizon Bottleneck via 16-Core Parallel MuJoCo Training under RelativeJointTargetAction",
         3,
     )
 
@@ -378,10 +376,10 @@ def make_slide_3():
         sr = pd.Series(sub["rollout/success_rate"].values * 100.0).rolling(window=max(1, len(sub) // 40), min_periods=1).mean()
         ax_curve.plot(steps_m, sr, label=label, color=color, linewidth=2.4)
 
-    # Mark the 200K-step midterm cutoff!
+    # Mark the 200K-step short-horizon cutoff
     ax_curve.axvline(0.2, color=RED, linestyle="--", linewidth=1.8)
     ax_curve.text(
-        0.35, 72, "Midterm Cutoff (200K Steps = 0.2M)\nWhy SAC appeared stuck at 16%!",
+        0.35, 72, "Short-Horizon Cutoff (200K Steps = 0.2M)\nWhy SAC appears stuck at 16% early on!",
         color=RED, fontsize=9.5, fontweight="bold",
         bbox=dict(boxstyle="round,pad=0.3", facecolor="#FEF2F2", edgecolor=RED),
     )
@@ -575,7 +573,7 @@ def make_slide_4():
     card.set_yticks([])
 
     card.add_patch(patches.Rectangle((0, 86), 100, 14, color=NAVY))
-    card.text(50, 93, "Key Contributions Ready for Our Final Report", fontsize=12.5, fontweight="bold", color="white", ha="center", va="center")
+    card.text(50, 93, "Key Engineering & Experimental Contributions", fontsize=12.5, fontweight="bold", color="white", ha="center", va="center")
 
     bullets = [
         ("1. Diagnosed Pretrained VLA Bottlenecks on 17-DoF Hand:",
@@ -583,7 +581,7 @@ def make_slide_4():
          "   • RelativeJointTargetAction + synergy prevents drops (100% → 0%),\n"
          "     proving why low-level 20 Hz finger gaiting is still required."),
         ("2. Completed 10M-Step Matched RL Benchmark on DRAC Nibi:",
-         "   • Overcame the midterm 200K-step SAC limitation using 16 CPU workers\n"
+         "   • Overcame the 200K-step short-horizon SAC bottleneck using 16 CPU workers\n"
          "   • SAC reaches 80% held success (85% align); PPO trains in 69.2 min."),
         ("3. Validated Hierarchical VLA + RL Hybrid Architecture:",
          "   • High-level π₀ phase guidance + 20 Hz RL achieves 100% nominal\n"

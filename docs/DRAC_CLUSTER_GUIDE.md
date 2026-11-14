@@ -14,11 +14,10 @@ Log in to the Nibi cluster via SSH:
 ssh gfedakar@nibi.alliancecan.ca
 ```
 
-Clone the simulation repository and `Pi0-ORCA-Integration` inside your `$HOME` or `$PROJECT` directory:
+Clone `Pi0-ORCA-Integration` inside your `$HOME` or `$PROJECT` directory (and ensure the `orca_sim` MuJoCo simulation package is installed or set via `ORCA_SIM_ROOT`):
 
 ```bash
 cd ~
-git clone https://github.com/joewukingdom/SEP730-Dexterous-Hand-Simulation.git
 git clone https://github.com/gulserenfedakar/Pi0-ORCA-Integration.git
 ```
 
@@ -31,7 +30,7 @@ source ~/orca_rl_venv/bin/activate
 
 pip install --upgrade pip
 pip install numpy gymnasium mujoco torch stable-baselines3
-pip install -e ~/SEP730-Dexterous-Hand-Simulation
+pip install -e "$ORCA_SIM_ROOT"
 pip install -e ~/Pi0-ORCA-Integration --no-deps
 ```
 

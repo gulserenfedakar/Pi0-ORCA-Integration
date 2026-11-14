@@ -8,7 +8,8 @@ from stable_baselines3 import SAC, PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str((REPO_ROOT.parent / "SEP730-Dexterous-Hand-Simulation" / "src").resolve()))
+for _cand in sorted(REPO_ROOT.parent.glob("*Dexterous-Hand-Simulation*")):
+    sys.path.insert(0, str((_cand / "src").resolve()))
 sys.path.insert(0, str(REPO_ROOT))
 
 from orca_sim import OrcaHandRightCubeOrientation

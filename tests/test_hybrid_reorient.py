@@ -10,8 +10,8 @@ if str(REPO_ROOT) not in sys.path:
 
 for cand_sim in [
     os.environ.get("ORCA_SIM_ROOT"),
-    str(REPO_ROOT.parent / "SEP730-Dexterous-Hand-Simulation"),
-    str(Path.home() / "SEP730-Dexterous-Hand-Simulation"),
+    *[str(p) for p in sorted(REPO_ROOT.parent.glob("*Dexterous-Hand-Simulation*"))],
+    *[str(p) for p in sorted(Path.home().glob("*Dexterous-Hand-Simulation*"))],
 ]:
     if cand_sim and (Path(cand_sim) / "src" / "orca_sim").exists():
         sim_src = str((Path(cand_sim) / "src").resolve())

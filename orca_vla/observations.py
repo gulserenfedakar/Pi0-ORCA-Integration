@@ -76,7 +76,7 @@ class OrcaVLAObservationBuilder:
         """Builds the exact observation dictionary expected by `pi0_droid` (DroidInputs):
         - observation/exterior_image_1_left: (224, 224, 3) uint8
         - observation/wrist_image_left: (224, 224, 3) uint8
-        - observation/joint_position: (7,) float32 (Franka Panda 7 joints)
+        - observation/joint_position: (7,) float32 (7D proprioceptive state)
         - observation/gripper_position: (1,) float32 ([0=open, 1=closed])
         - prompt: str
         """

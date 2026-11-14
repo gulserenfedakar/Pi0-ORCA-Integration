@@ -15,8 +15,8 @@ from orca_vla import OrcaVLAActionAdapter
 def _resolve_sim_scene(scene_name: str, version: str = "v2") -> Path:
     for cand in [
         os.environ.get("ORCA_SIM_ROOT"),
-        str(REPO_ROOT.parent / "SEP730-Dexterous-Hand-Simulation"),
-        str(Path.home() / "SEP730-Dexterous-Hand-Simulation"),
+        *[str(p) for p in sorted(REPO_ROOT.parent.glob("*Dexterous-Hand-Simulation*"))],
+        *[str(p) for p in sorted(Path.home().glob("*Dexterous-Hand-Simulation*"))],
     ]:
         if cand:
             p = Path(cand) / "src" / "orca_sim" / "scenes" / version / scene_name
