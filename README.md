@@ -137,15 +137,15 @@ python scripts/benchmark_cube_reorient.py
 
 ## Experimental Results Summary
 
-Task criterion: rotate the cube from a non-solved initial orientation (`down` at $180^\circ$ or `random` across $90^\circ / 180^\circ$ axis-aligned orientations) until the red face normal is within $15^\circ$ of world-up, and maintain that orientation with low angular/linear velocity for 25 consecutive steps ($0.25\text{ s}$) without dropping the cube.
+Task criterion: rotate the cube from a non-solved initial orientation (`down` at $180^\circ$ or `random` across $90^\circ / 180^\circ$ axis-aligned orientations) until the red face normal is within $15^\circ$ of world-up, and maintain that orientation with low angular/linear velocity for 25 consecutive control steps ($1.25\text{ s}$ at $20\text{ Hz}$) without dropping the cube.
 
 | Evaluation Configuration | Camera | Inference Latency (ms) | E2E Step Latency (ms) | Episode Time (s) | Goal Align ($<15^\circ$) | Mean Hold Streak (/25) | Held Task Success (%) | Cube Drop Rate (%) | Final Angle Error ($^\circ$) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1. Standalone $\pi_0$ — Naive Direct Mapping** | `palm_front` | 302.50 | 459.18 | 2.30 | 0.0% | 0.0 | **0.0%** | 100.0% | 30.09° |
-| **2. Standalone $\pi_0$ — Relative Control + 17-DoF Synergy** | `palm_front` | 287.13 | 443.12 | 4.43 | 0.0% | 0.0 | **0.0%** | 0.0% | 90.20° |
-| **3. Standalone $\pi_0$ — Relative Control + 17-DoF Synergy** | `palm_top` | 289.35 | 446.57 | 4.47 | 0.0% | 0.0 | **0.0%** | 0.0% | 90.41° |
-| **4. Hybrid $\pi_0$ + RL (PPO) — Nominal $180^\circ$ Flip** | `palm_front` | 289.16 | 444.09 | 4.44 | 100.0% | 25.0 | **100.0%** | 0.0% | 13.81° |
-| **5. Hybrid $\pi_0$ + RL (PPO) — Randomized 5 Orientations** | `palm_front` | 295.62 | 450.47 | 4.03 | 100.0% | 20.6 | **80.0%** | 20.0% | 18.98° |
+| **1. Standalone $\pi_0$ — Naive Direct Mapping** | `palm_front` | 302.50 | 459.18 | 2.30 | 0.0% | 0.0 | **0.0%** | 100.0% | 30.09° *(Drop)* |
+| **2. Standalone $\pi_0$ — Relative Control + 17-DoF Synergy** | `palm_front` | 287.13 | 443.12 | 4.43 | 0.0% | 0.0 | **0.0%** | 0.0% | 90.20° *(Min: 72.93°)* |
+| **3. Standalone $\pi_0$ — Relative Control + 17-DoF Synergy** | `palm_top` | 289.35 | 446.57 | 4.47 | 0.0% | 0.0 | **0.0%** | 0.0% | 90.41° *(Min: 72.96°)* |
+| **4. Hybrid $\pi_0$ + RL (PPO) — Nominal $180^\circ$ Flip** | `palm_front` | 289.16 | 444.09 | 4.44 | 100.0% | 25.0 | **100.0%** | 0.0% | 13.81° *(Min: 2.83°)* |
+| **5. Hybrid $\pi_0$ + RL (PPO) — Randomized 5 Orientations** | `palm_front` | 295.62 | 450.47 | 4.03 | 100.0% | 20.6 | **80.0%** | 20.0% | 18.98° *(Min: 7.26°)* |
 
 ### Matched Multi-Algorithm RL Benchmark (DRAC `Nibi` Cluster — 16 CPU Cores per Algorithm)
 
