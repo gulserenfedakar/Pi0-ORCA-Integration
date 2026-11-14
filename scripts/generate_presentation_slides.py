@@ -201,24 +201,31 @@ def make_slide_1():
 
     # Pathway C: Hierarchical Hybrid VLA + RL (PPO / SAC)
     draw_box(
-        diag_ax, 3, 6, 27, 24,
-        "Pathway C: Proposed Hybrid VLA+RL",
-        "High-Level π₀ Planner (~3.5 Hz)\nSelects Manipulation Phase:\n[FLIP_180 | ROLL_X | ROLL_Y | HOLD]",
+        diag_ax, 3, 8, 27, 23,
+        "Pathway C: Hybrid VLA + RL",
+        "High-Level π₀ + Phase Gate (~3.5 Hz)\nVisual Chunk + Bounded Residual:\n[FLIP_180 | ROLL_X | ROLL_Y | HOLD]",
         "#ECFDF5", GREEN,
     )
-    diag_ax.annotate("", xy=(36, 18), xytext=(30.5, 18), arrowprops=dict(arrowstyle="->", lw=2.5, color=GREEN))
+    diag_ax.annotate("", xy=(36, 19.5), xytext=(30.5, 19.5), arrowprops=dict(arrowstyle="->", lw=2.5, color=GREEN))
     draw_box(
-        diag_ax, 36.5, 6, 27, 24,
-        "Low-Level 20 Hz RL Controller",
-        "DRAC Nibi 10M-Step SAC / PPO\n(~0.3 ms CPU Inference)\nRelative 17-DoF Finger Gaiting",
+        diag_ax, 36.5, 8, 27, 23,
+        "Low-Level 20 Hz Skill / RL",
+        "Reference Gait + PPO/SAC Policy\n(~0.3 ms CPU Step Execution)\nRelative 17-DoF Finger Gaiting",
         "#ECFDF5", GREEN,
     )
-    diag_ax.annotate("", xy=(69.5, 18), xytext=(64, 18), arrowprops=dict(arrowstyle="->", lw=2.5, color=GREEN))
+    diag_ax.annotate("", xy=(69.5, 19.5), xytext=(64, 19.5), arrowprops=dict(arrowstyle="->", lw=2.5, color=GREEN))
     draw_box(
-        diag_ax, 70, 6, 27, 24,
+        diag_ax, 70, 8, 27, 23,
         "Outcome: Reliable Reorientation",
-        "100% Nominal / 80% Random\nHeld 25/25 Steps (<15° Cone)\nFinal Error: 13.8° – 18.4°",
+        "100% Nominal / 80% Random\nHold: 25/25 (Nom) | 21.0/25 (SAC)\nAligned Error: 6.6°–13.8° (<15°)",
         "#DCFCE7", GREEN,
+    )
+    # Closed-loop feedback annotation at bottom of Pathway C
+    diag_ax.annotate(
+        "Closed-Loop Feedback: 20 Hz Proprioception (43D) + 3.5 Hz Dual-Camera RGB Re-Planning",
+        xy=(16.5, 7.5), xytext=(50, 2.2),
+        ha="center", va="center", fontsize=8.8, fontweight="bold", color=GREEN,
+        bbox=dict(boxstyle="round,pad=0.28", facecolor="#ECFDF5", edgecolor=GREEN, linestyle="--"),
     )
 
     save_slide(fig, "slide1_architecture_pipeline.jpg")
@@ -268,6 +275,12 @@ def make_slide_2():
                 bar.get_x() + bar.get_width() / 2, h + 2,
                 f"{h:.0f}%", ha="center", va="bottom", fontsize=8.5, fontweight="bold", color=NAVY,
             )
+    ax1.text(
+        1.5, 34,
+        "Configs 2 & 3 (Synergy π₀):\n0% Drop Rate & 17° Partial Rotation (90°→72.9°),\nbut 3.5 Hz VLA alone cannot finger-gait to <15°",
+        ha="center", va="center", fontsize=8.6, fontweight="bold", color=BLUE,
+        bbox=dict(boxstyle="round,pad=0.35", facecolor="#EFF6FF", edgecolor=BLUE),
+    )
 
     # Top-right: VLA Inference Latency Comparison (OpenVLA-7B vs Pi0 vs RL CPU)
     ax2 = fig.add_axes([0.62, 0.45, 0.34, 0.39])
@@ -277,45 +290,45 @@ def make_slide_2():
     colors = [ORANGE, BLUE, GREEN]
     bars = ax2.bar(models, latencies, color=colors, width=0.5)
     ax2.set_yscale("log")
-    ax2.set_ylim(0.1, 8000)
+    ax2.set_ylim(0.1, 12000)
     ax2.set_ylabel("Inference Latency per Call (ms, log scale)", fontsize=10.5, fontweight="bold", color=NAVY)
     ax2.set_title("Control Latency: 7.4× Faster VLA + 20 Hz RL", fontsize=12.5, fontweight="bold", color=NAVY, pad=10)
     ax2.grid(axis="y", linestyle="--", alpha=0.4)
     for bar, val in zip(bars, latencies):
         ax2.text(
-            bar.get_x() + bar.get_width() / 2, val * 1.35,
+            bar.get_x() + bar.get_width() / 2, val * 1.28,
             f"{val:.2f} ms" if val < 1 else f"{val:.1f} ms",
             ha="center", va="bottom", fontsize=10, fontweight="bold", color=NAVY,
         )
     ax2.text(
-        0.5, 0.83, "π₀ is 7.4× faster than OpenVLA-7B\nand fits in 6.34 GB / 8 GB VRAM",
+        0.54, 0.87, "π₀ is 7.4× faster than OpenVLA-7B\nand fits in 6.34 GB / 8 GB VRAM",
         transform=ax2.transAxes, ha="center", va="center",
-        fontsize=9.5, fontweight="bold", color=MAROON,
-        bbox=dict(boxstyle="round,pad=0.4", facecolor="#FEF3C7", edgecolor=GOLD),
+        fontsize=9.2, fontweight="bold", color=MAROON,
+        bbox=dict(boxstyle="round,pad=0.38", facecolor="#FEF3C7", edgecolor=GOLD),
     )
 
     # Bottom: Full quantitative table
-    tab_ax = fig.add_axes([0.04, 0.05, 0.92, 0.33])
+    tab_ax = fig.add_axes([0.04, 0.06, 0.92, 0.32])
     tab_ax.axis("off")
     col_labels = [
         "Benchmark Configuration", "Mode", "Camera", "Infer (ms)", "E2E (ms)",
         "Goal Align", "Hold Streak", "Held Success", "Drop Rate", "Min Angle", "Final Angle",
     ]
     table_data = [
-        ["1. Standalone π₀ — Naive Direct Mapping", "direct_17dof", "palm_front", "302.50", "459.18", "0.0%", "0.0 / 25", "0.0%", "100.0%", "30.09°", "30.09°"],
+        ["1. Standalone π₀ — Naive Direct Mapping", "direct_17dof", "palm_front", "302.50", "459.18", "0.0%", "0.0 / 25", "0.0%", "100.0%", "30.09°*", "30.09° (Drop)"],
         ["2. Standalone π₀ — Relative + 17-DoF Synergy", "synergy_reorient", "palm_front", "287.13", "443.12", "0.0%", "0.0 / 25", "0.0%", "0.0%", "72.93°", "90.20°"],
         ["3. Standalone π₀ — Relative + 17-DoF Synergy", "synergy_reorient", "palm_top", "289.35", "446.57", "0.0%", "0.0 / 25", "0.0%", "0.0%", "72.96°", "90.41°"],
         ["4. Hybrid π₀ + RL (PPO) — Nominal 180° Flip", "pi0_rl_hybrid", "palm_front", "289.16", "444.09", "100.0%", "25.0 / 25", "100.0%", "0.0%", "2.83°", "13.81°"],
         ["5. Hybrid π₀ + RL (PPO) — Randomized 5 Poses", "pi0_rl_hybrid", "palm_front", "295.62", "450.47", "100.0%", "20.6 / 25", "80.0%", "20.0%", "7.26°", "18.98°"],
     ]
-    col_widths = [0.26, 0.11, 0.08, 0.07, 0.07, 0.07, 0.08, 0.08, 0.06, 0.06, 0.06]
+    col_widths = [0.25, 0.11, 0.08, 0.07, 0.07, 0.07, 0.08, 0.08, 0.06, 0.06, 0.07]
     tbl = tab_ax.table(
         cellText=table_data, colLabels=col_labels, colWidths=col_widths,
-        loc="center", cellLoc="center",
+        loc="upper center", cellLoc="center",
     )
     tbl.auto_set_font_size(False)
-    tbl.set_fontsize(9.5)
-    tbl.scale(1.0, 1.85)
+    tbl.set_fontsize(9.2)
+    tbl.scale(1.0, 1.75)
     for (row, col), cell in tbl.get_celld().items():
         cell.set_edgecolor(BORDER)
         if row == 0:
@@ -329,6 +342,12 @@ def make_slide_2():
             cell.set_facecolor(CARD_BG)
             if col == 0:
                 cell.set_text_props(fontweight="bold", color=NAVY)
+
+    tab_ax.text(
+        0.5, 0.02,
+        "*Note on Config 1 (30.09° Drop): Uncoordinated joint targets eject the cube at step 25 (100% drop rate), causing uncontrolled free-fall tumbling. Configs 2–3 maintain a 0% drop rate.",
+        ha="center", va="center", fontsize=8.8, style="italic", color=SLATE,
+    )
 
     save_slide(fig, "slide2_pi0_standalone_vs_hybrid.jpg")
 
@@ -375,27 +394,27 @@ def make_slide_3():
     ax_curve.grid(True, linestyle="--", alpha=0.4)
     ax_curve.legend(loc="lower right", fontsize=9.5, frameon=True)
 
-    # Top-right: 20-Episode Unseen Evaluation Bar Chart
+    # Top-right: 20-Episode Unseen Evaluation & Peak Eval Bar Chart
     ax_eval = fig.add_axes([0.55, 0.44, 0.41, 0.40])
     ax_eval.set_facecolor(CARD_BG)
     algos = ["SAC (10M)", "PPO (10M)", "TD3 (10M)"]
     x = np.arange(len(algos))
-    w = 0.26
+    w = 0.25
     goal_align = [85.0, 85.0, 60.0]
+    eval_best = [90.0, 80.0, 70.0]
     held_succ = [80.0, 50.0, 55.0]
-    hold_pct = [21.0 / 25 * 100, 16.6 / 25 * 100, 13.8 / 25 * 100]
 
-    b1 = ax_eval.bar(x - w, goal_align, width=w, label="Goal Align (<15°)", color=BLUE)
-    b2 = ax_eval.bar(x, held_succ, width=w, label="Held Success (25/25 steps)", color=GREEN)
-    b3 = ax_eval.bar(x + w, hold_pct, width=w, label="Hold Streak (% of 25 steps)", color=TEAL)
+    b1 = ax_eval.bar(x - w, goal_align, width=w, label="Goal Align (<15°, 20 Seeds)", color=BLUE)
+    b2 = ax_eval.bar(x, eval_best, width=w, label="Best EvalCallback Success (%)", color=TEAL)
+    b3 = ax_eval.bar(x + w, held_succ, width=w, label="Strict 25-Step Hold (20 Seeds)", color=GREEN)
 
-    ax_eval.set_ylim(0, 105)
+    ax_eval.set_ylim(0, 108)
     ax_eval.set_xticks(x)
     ax_eval.set_xticklabels(algos, fontsize=11, fontweight="bold", color=NAVY)
     ax_eval.set_ylabel("Percentage (%)", fontsize=11, fontweight="bold", color=NAVY)
-    ax_eval.set_title("Independent Evaluation (20 Unseen Random Seeds)", fontsize=12.5, fontweight="bold", color=NAVY, pad=10)
+    ax_eval.set_title("Alignment (<15°) vs. Sustained 25-Step Hold", fontsize=12.5, fontweight="bold", color=NAVY, pad=10)
     ax_eval.grid(axis="y", linestyle="--", alpha=0.4)
-    ax_eval.legend(loc="upper right", fontsize=9.2, frameon=True)
+    ax_eval.legend(loc="upper right", fontsize=8.8, frameon=True)
 
     for bars in [b1, b2, b3]:
         for bar in bars:
@@ -406,22 +425,22 @@ def make_slide_3():
             )
 
     # Bottom: Comparison Table + Key Findings
-    tab_ax = fig.add_axes([0.04, 0.05, 0.92, 0.31])
+    tab_ax = fig.add_axes([0.03, 0.05, 0.94, 0.32])
     tab_ax.axis("off")
     col_labels = [
         "RL Algorithm (DRAC Nibi)", "Total Steps", "Wall-Clock Time", "Throughput",
-        "Policy Latency", "Goal Align (<15°)", "Mean Hold Streak", "Held Success", "Drop Rate", "Final Angle",
+        "Goal Align (<15°)", "EvalCallback (Best/Peak)", "20-Seed Hold Streak", "20-Seed Held Success", "Drop Rate", "Final Angle (All / Aligned)",
     ]
     rows = [
-        ["SAC (Max-Entropy Off-Policy)", "10,000,000", "352.4 min (5.87 h)", "473 FPS", "0.330 ms", "85.0%", "21.0 / 25 steps", "80.0%", "0.0%", "18.37°"],
-        ["PPO (Clipped On-Policy)", "10,002,432", "69.2 min (1.15 h)", "2,409 FPS", "0.292 ms", "85.0%", "16.6 / 25 steps", "50.0% (Eval: 75%)", "0.0%", "19.04°"],
-        ["TD3 (Deterministic Off-Policy)", "10,000,000", "316.8 min (5.28 h)", "527 FPS", "0.238 ms", "60.0%", "13.8 / 25 steps", "55.0%", "5.0%", "46.36°"],
+        ["SAC (Max-Entropy Off-Policy)", "10,000,000", "352.4 min (5.87 h)", "473 FPS", "85.0%", "90.0% / 90.0%", "21.0 / 25 steps", "80.0%", "0.0%", "18.37° (6.6° aligned)"],
+        ["PPO (Clipped On-Policy)", "10,002,432", "69.2 min (1.15 h)", "2,409 FPS", "85.0%", "80.0% / 95.0%", "16.6 / 25 steps", "50.0% (75% Final Eval)", "0.0%", "19.04° (12.0° aligned)"],
+        ["TD3 (Deterministic Off-Policy)", "10,000,000", "316.8 min (5.28 h)", "527 FPS", "60.0%", "70.0% / 70.0%", "13.8 / 25 steps", "55.0%", "5.0%", "46.36° (11.7° aligned)"],
     ]
-    col_widths = [0.20, 0.08, 0.11, 0.07, 0.08, 0.09, 0.10, 0.11, 0.08, 0.08]
+    col_widths = [0.18, 0.08, 0.11, 0.07, 0.09, 0.12, 0.10, 0.11, 0.05, 0.12]
     tbl = tab_ax.table(cellText=rows, colLabels=col_labels, colWidths=col_widths, loc="upper center", cellLoc="center")
     tbl.auto_set_font_size(False)
-    tbl.set_fontsize(9.8)
-    tbl.scale(1.0, 2.0)
+    tbl.set_fontsize(8.8)
+    tbl.scale(1.0, 1.95)
     for (row, col), cell in tbl.get_celld().items():
         cell.set_edgecolor(BORDER)
         if row == 0:
@@ -429,7 +448,7 @@ def make_slide_3():
             cell.set_text_props(color="white", fontweight="bold")
         elif row == 1:
             cell.set_facecolor("#ECFDF5")
-            if col in (0, 7, 9):
+            if col in (0, 5, 7, 9):
                 cell.set_text_props(fontweight="bold", color=GREEN)
         else:
             cell.set_facecolor(CARD_BG)
@@ -437,10 +456,11 @@ def make_slide_3():
                 cell.set_text_props(fontweight="bold", color=NAVY)
 
     tab_ax.text(
-        0.5, 0.06,
-        "Key Finding: SAC's entropy-regularized replay achieves the highest sustained 25-step hold stability (80% held success, 0% drops), while PPO trains 5.1× faster (69 min vs. 352 min).",
-        ha="center", va="center", fontsize=11, fontweight="bold", color=MAROON,
-        bbox=dict(boxstyle="round,pad=0.45", facecolor="#FEF3C7", edgecolor=GOLD),
+        0.5, 0.07,
+        "Key Finding: PPO & SAC both reach <15° in 85% of episodes (0% drops; aligned final error: 6.6° SAC, 12.0° PPO; 20-seed mean: 18.4°–19.0°).\n"
+        "SAC's entropy regularization damps angular velocity (||ω||≤1 rad/s) to hold 25/25 steps (1.25 s) in 80% of seeds, while PPO trains 5.1× faster (69.2 min).",
+        ha="center", va="center", fontsize=9.1, fontweight="bold", color=MAROON,
+        bbox=dict(boxstyle="round,pad=0.38", facecolor="#FEF3C7", edgecolor=GOLD),
     )
 
     save_slide(fig, "slide3_drac_rl_10m_benchmark.jpg")
@@ -463,14 +483,23 @@ def make_slide_4():
     vec_env.norm_reward = False
     model = SAC.load(str(REPO_ROOT / "models/drac_sac_10M/best_model.zip"), env=vec_env)
 
+    import mujoco
     renderer = VLACameraRenderer(env.unwrapped.model, env.unwrapped.data, width=360, height=270)
+    high_cam = mujoco.MjvCamera()
+    mujoco.mjv_defaultFreeCamera(env.unwrapped.model, high_cam)
+    high_cam.lookat[:] = [0.165, -0.015, 0.185]
+    high_cam.distance = 0.30
+    high_cam.azimuth = 140.0
+    high_cam.elevation = -55.0
+
     obs = vec_env.reset()
     frames = []
     angles_deg = []
     streaks = []
 
     for step in range(120):
-        frame = renderer.render(camera_id="palm_front").copy()
+        renderer.renderer.update_scene(env.unwrapped.data, camera=high_cam)
+        frame = renderer.renderer.render().copy()
         action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, info = vec_env.step(action)
         info_d = info[0]
@@ -490,13 +519,13 @@ def make_slide_4():
     add_header(
         fig,
         "4. Closed-Loop 17-DoF Cube Reorientation Rollout & Final Takeaways",
-        "180° In-Hand Flip (Red Face Down → World-Up <15°) Executed by 10M-Step SAC Policy without Dropping",
+        "180° In-Hand Flip (Red Face Down → World-Up <15° & ||ω||≤1 rad/s) by 10M-Step SAC Policy",
         4,
     )
 
-    # Top row: 6 evenly spaced keyframes
-    n_kf = 6
-    idxs = np.linspace(0, len(frames) - 1, n_kf, dtype=int)
+    # Top row: 6 action-focused keyframes capturing the rotation phases + final 25/25 hold
+    cand_idxs = [0, 9, 17, 25, 35, len(frames) - 1]
+    idxs = [min(max(0, i), len(frames) - 1) for i in cand_idxs]
     for k, idx in enumerate(idxs):
         step_num, img_arr, ang_val, st_val = frames[idx]
         ax_f = fig.add_axes([0.03 + k * 0.158, 0.56, 0.148, 0.28])
@@ -512,19 +541,27 @@ def make_slide_4():
             fontsize=9.2, fontweight="bold", color=NAVY, pad=5,
         )
 
-    # Bottom-left: Angle error & hold streak trajectory plot
-    ax_traj = fig.add_axes([0.05, 0.08, 0.46, 0.40])
+    # Bottom-left: Angle error & hold streak twin-axis trajectory plot
+    ax_traj = fig.add_axes([0.05, 0.08, 0.45, 0.40])
     ax_traj.set_facecolor(CARD_BG)
     t_axis = np.arange(1, len(angles_deg) + 1) * 0.05
-    ax_traj.plot(t_axis, angles_deg, color=BLUE, linewidth=2.6, label="Red-Face Angle Error θ(t) [deg]")
-    ax_traj.axhline(15.0, color=GREEN, linestyle="--", linewidth=2.0, label="15° Goal Cone Threshold")
+    l1 = ax_traj.plot(t_axis, angles_deg, color=BLUE, linewidth=2.6, label="Red-Face Angle Error θ(t) [deg]")
+    l2 = ax_traj.axhline(15.0, color=GREEN, linestyle="--", linewidth=2.0, label="15° Goal Cone Threshold")
     ax_traj.fill_between(t_axis, 0, 15.0, color="#DCFCE7", alpha=0.6)
     ax_traj.set_ylim(0, 190)
-    ax_traj.set_xlabel("Simulation Time (s)", fontsize=11, fontweight="bold", color=NAVY)
-    ax_traj.set_ylabel("Angle Error to World-Up (°)", fontsize=11, fontweight="bold", color=NAVY)
-    ax_traj.set_title("Cube Orientation Error Trajectory & 25-Step Stabilization", fontsize=12.5, fontweight="bold", color=NAVY, pad=8)
+    ax_traj.set_xlabel("Simulation Time (s) [20 Hz Control]", fontsize=10.8, fontweight="bold", color=NAVY)
+    ax_traj.set_ylabel("Angle Error to World-Up (°)", fontsize=10.8, fontweight="bold", color=BLUE)
+    ax_traj.set_title("Orientation Error θ(t) & Stationary Hold Streak (||ω||≤1 rad/s)", fontsize=11.8, fontweight="bold", color=NAVY, pad=8)
     ax_traj.grid(True, linestyle="--", alpha=0.4)
-    ax_traj.legend(loc="upper right", fontsize=9.5, frameon=True)
+
+    ax_st = ax_traj.twinx()
+    l3 = ax_st.plot(t_axis, streaks, color=MAROON, linestyle="-.", linewidth=2.2, label="Stationary Hold Streak (/25 steps)")
+    ax_st.set_ylim(0, 28)
+    ax_st.set_ylabel("Hold Streak (steps)", fontsize=10.5, fontweight="bold", color=MAROON)
+
+    lines = l1 + [l2] + l3
+    labels_leg = [l.get_label() for l in lines]
+    ax_traj.legend(lines, labels_leg, loc="upper center", bbox_to_anchor=(0.56, 0.97), fontsize=8.4, frameon=True)
 
     # Bottom-right: Summary card for Final Report integration
     card = fig.add_axes([0.55, 0.08, 0.41, 0.40])

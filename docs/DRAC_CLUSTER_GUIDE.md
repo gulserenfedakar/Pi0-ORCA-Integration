@@ -2,7 +2,7 @@
 
 This guide explains how to run the matched 10M-step Reinforcement Learning benchmark (`PPO`, `SAC`, `TD3`) on the 17-DoF `OrcaHandRightCubeOrientation` task using the Digital Research Alliance of Canada (DRAC) **Nibi** cluster (`nibi.alliancecan.ca`).
 
-Because `OrcaHandRightCubeOrientation` uses low-dimensional proprioceptive and cube-pose observations (without camera rendering during pure RL training), it runs entirely on multi-core CPUs at `~1,500–2,200 FPS` on 16 CPU cores and does not require GPU allocation.
+Because `OrcaHandRightCubeOrientation` uses low-dimensional proprioceptive and cube-pose observations (without camera rendering during pure RL training), it runs entirely on multi-core CPUs at `~2,409 FPS` for on-policy `PPO` and `~473–527 FPS` for off-policy `SAC` / `TD3` on 16 CPU cores and does not require GPU allocation.
 
 ---
 
@@ -60,7 +60,7 @@ sq
 tail -f logs/orca_rl_*_1.out
 ```
 
-Once the jobs complete, evaluate all trained checkpoints (`PPO`, `SAC`, `TD3`) across 20 held-out episodes to generate `results/rl_algorithms_comparison.csv`:
+Once the jobs complete, evaluate all trained checkpoints (`PPO`, `SAC`, `TD3`) across 20 held-out episodes to generate `results/rl_reorient_benchmark.csv`:
 
 ```bash
 python scripts/evaluate_rl_reorient.py --runs-dir runs --episodes 20

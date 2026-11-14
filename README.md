@@ -15,7 +15,7 @@ Pretrained Vision-Language-Action (VLA) foundation models such as Physical Intel
 
 This repository implements the observation pipeline, 17-DoF in-hand synergy adapters, relative joint-target wrappers, and hierarchical $\pi_0$ + PPO control architecture required to run $\pi_0$ in closed loop on the **17-DoF In-Hand Cube Reorientation (`OrcaHandRightCubeOrientation` / `scene_right_cube_orientation.xml`)** benchmark environment:
 
-* **Task Objective:** Using only the 17-DoF ORCA right hand, manipulate a cube inside the palm from a non-solved initial orientation (`down` at $180^\circ$ or `random` across $90^\circ / 180^\circ$ orientations) to align its red face within $15^\circ$ of world-up and hold it stationary ($\|\omega\| \le 1.0\text{ rad/s}$, $\|v\| \le 0.1\text{ m/s}$) for 25 consecutive control steps ($0.25\text{ s}$) without dropping it.
+* **Task Objective:** Using only the 17-DoF ORCA right hand, manipulate a cube inside the palm from a non-solved initial orientation (`down` at $180^\circ$ or `random` across $90^\circ / 180^\circ$ orientations) to align its red face within $15^\circ$ of world-up and hold it stationary ($\|\omega\| \le 1.0\text{ rad/s}$, $\|v\| \le 0.1\text{ m/s}$) for 25 consecutive control steps ($1.25\text{ s}$ at $20\text{ Hz}$) without dropping it.
 
 | Default Scene View (`default_free`) | Oblique Palmar View (`palm_front`) | Overhead Palmar View (`palm_top`) |
 | :---: | :---: | :---: |
@@ -67,7 +67,7 @@ All experiments in this repository were developed and verified on an 8 GB consum
 * **GPU:** NVIDIA GeForce RTX 4070 Laptop GPU (`8,188 MiB` GDDR6 VRAM)
 * **Precision & XLA Configuration:** `bfloat16` via JAX XLA JIT with on-demand platform memory allocation (`XLA_PYTHON_CLIENT_PREALLOCATE=false`, `XLA_PYTHON_CLIENT_ALLOCATOR=platform`)
 * **Active VRAM Footprint:** `6,317 MiB` after loading the 3B-parameter $\pi_0$ checkpoint; `6,341 MiB` (`80.4%` of total VRAM including driver overhead) during active closed-loop inference alongside MuJoCo `224x224` offscreen EGL rendering
-* **Inference Latency:** `~265–295 ms` per 50-step flow-matching action chunk (`~3.5–3.7 Hz`), after a one-time XLA JIT compilation warmup of `~32.8 s` on step 0
+* **Inference Latency:** `~287–303 ms` per 50-step flow-matching action chunk (`~3.3–3.5 Hz`), after a one-time XLA JIT compilation warmup of `~32.8 s` on step 0
 
 ---
 
@@ -149,16 +149,17 @@ Task criterion: rotate the cube from a non-solved initial orientation (`down` at
 
 ### Matched Multi-Algorithm RL Benchmark (DRAC `Nibi` Cluster — 16 CPU Cores per Algorithm)
 
-| RL Algorithm | Action Mode | Episodes (`init=random`) | Policy Latency (ms) | Goal Align ($<15^\circ$) | Mean Hold Streak (/25) | Held Task Success (%) | Cube Drop Rate (%) | Min Angle Error ($^\circ$) | Final Angle Error ($^\circ$) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **SAC** (`sac_reorient_random_10M`) | `relative` | 20 | 0.330 | **85.0%** | **21.0** | **80.0%** | **0.0%** | 16.53° | **18.37°** |
-| **PPO** (`ppo_reorient_random_10M`) | `relative` | 20 | 0.292 | **85.0%** | 16.6 | **50.0%** *(Eval: 75.0%)* | **0.0%** | **14.70°** | **19.04°** |
-| **TD3** (`td3_reorient_random_10M`) | `relative` | 20 | **0.238** | 60.0% | 13.8 | **55.0%** | 5.0% | 34.43° | 46.36° |
+| RL Algorithm | Action Mode | Episodes (`init=random`) | Policy Latency (ms) | Goal Align ($<15^\circ$) | `EvalCallback` (Best / Peak) | Mean Hold Streak (/25) | Held Task Success (%) | Cube Drop Rate (%) | Min Angle (All / Aligned) | Final Angle (All / Aligned) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **SAC** (`sac_reorient_random_10M`) | `relative` | 20 | 0.330 | **85.0%** | **90.0% / 90.0%** | **21.0** | **80.0%** | **0.0%** | 16.53° *(5.56°)* | **18.37°** *(6.55°)* |
+| **PPO** (`ppo_reorient_random_10M`) | `relative` | 20 | 0.292 | **85.0%** | 80.0% / **95.0%** | 16.6 | **50.0%** *(75.0% Final Eval)* | **0.0%** | **14.70°** *(8.49°)* | 19.04° *(12.00°)* |
+| **TD3** (`td3_reorient_random_10M`) | `relative` | 20 | **0.238** | 60.0% | 70.0% / 70.0% | 13.8 | **55.0%** | 5.0% | 34.43° *(7.07°)* | 46.36° *(11.70°)* |
 
 ---
 
 ## Documentation
 
+* [Comprehensive Benchmark & Cluster Report (`docs/FINAL_BENCHMARK_AND_CLUSTER_REPORT.md`)](docs/FINAL_BENCHMARK_AND_CLUSTER_REPORT.md)
 * [System Architecture & Control Design (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md)
 * [Benchmark Protocol & Failure Analysis (`docs/BENCHMARKS.md`)](docs/BENCHMARKS.md)
 * [DRAC Nibi Cluster RL Training Guide (`docs/DRAC_CLUSTER_GUIDE.md`)](docs/DRAC_CLUSTER_GUIDE.md)

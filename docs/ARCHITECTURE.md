@@ -51,6 +51,6 @@ To bridge the frequency and dexterity gap between high-level visual reasoning (`
 1. **High-Level VLA Coordinator (`classify_high_level_reorient_skill`):**
    * At each VLA replanning step, $\pi_0$ processes the live `palm_front` and `palm_top` RGB observations (`224 x 224`) and outputs an action chunk.
    * The coordinator selects the active discrete manipulation skill (`ROLL_X_POS`, `ROLL_X_NEG`, `ROLL_Y_POS`, `ROLL_Y_NEG`, `FLIP_180`, or `HOLD_STILL`) and extracts a bounded residual modulation vector from the $\pi_0$ chunk.
-   * Once the red face normal enters the goal cone ($\theta \le 14.2^\circ$) with low angular velocity ($\|\omega\| \le 0.90\text{ rad/s}$), the coordinator transitions to `HOLD_STILL`, zeroing relative joint deltas so the hand maintains a stationary cradle for the required 25 consecutive steps ($0.25\text{ s}$).
+   * Once the red face normal enters the goal cone ($\theta \le 14.2^\circ$) with low angular velocity ($\|\omega\| \le 0.90\text{ rad/s}$), the coordinator transitions to `HOLD_STILL`, zeroing relative joint deltas so the hand maintains a stationary cradle for the required 25 consecutive steps ($1.25\text{ s}$ at $20\text{ Hz}$ control).
 2. **Low-Level 17-DoF RL Policy (`LowLevelReorientRLController`):**
    * Executes 10 relative-joint control steps ($20\text{ Hz}$) per high-level VLA query using calibrated relative-joint trajectories and a pretrained `stable-baselines3` PPO policy (`models/ppo_cube_reorient.zip`).
