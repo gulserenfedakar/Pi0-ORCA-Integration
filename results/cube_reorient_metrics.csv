@@ -1,6 +1,6 @@
 Experiment,Mode,Camera,Trials,Inference_Latency_ms,E2E_Control_Latency_ms,Completion_Time_s,Goal_Align_Rate_pct,Mean_Hold_Streak_steps,Task_Success_Rate_pct,Cube_Drop_Rate_pct,Min_Angle_Error_deg,Final_Angle_Error_deg
-1. Standalone π0 — Naive Direct Mapping (No Relative/Synergy),direct_17dof,palm_front,2,302.5,459.18,2.3,0.0,0.0,0.0,100.0,30.09,30.09
-2. Standalone π0 — Relative Control + 17-DoF Synergy (Front Cam),synergy_reorient,palm_front,2,287.13,443.12,4.43,0.0,0.0,0.0,0.0,72.93,90.2
-3. Standalone π0 — Relative Control + 17-DoF Synergy (Top Cam),synergy_reorient,palm_top,2,289.35,446.57,4.47,0.0,0.0,0.0,0.0,72.96,90.41
-4. Hybrid π0 + RL (PPO) — High-Level VLA + Low-Level RL (Nominal 180° Flip),pi0_rl_hybrid,palm_front,2,289.16,444.09,4.44,100.0,25.0,100.0,0.0,2.83,13.81
-5. Hybrid π0 + RL (PPO) — High-Level VLA + Low-Level RL (Randomized 5 Trials),pi0_rl_hybrid,palm_front,5,295.62,450.47,4.03,100.0,20.6,80.0,20.0,7.26,18.98
+1. Standalone pi0 — Naive Direct Mapping,direct_17dof,palm_front,10,289.18,424.04,2.12,0.0,0.0,0.0,100.0,25.76,25.76
+2. Standalone pi0 — Relative + 17-DoF Synergy,synergy_reorient,palm_front,10,290.06,432.26,2.59,0.0,0.0,0.0,0.0,89.37,97.06
+"3. pi0 Integrated + Scripted Skills (5 Starts, Res=0.1)",pi0_rl_hybrid,palm_front,5,278.85,403.36,3.6,100.0,20.6,80.0,20.0,7.25,19.01
+"4. pi0 Integrated + Scripted Skills (Zero-Res Ablation, Res=0.0)",pi0_rl_hybrid,palm_front,5,274.11,397.11,3.81,100.0,20.6,80.0,20.0,7.34,38.13
+"5. pi0 Integrated + 10M-Step PPO Policy (No Scripted Trajs, Res=0.0)",pi0_rl_hybrid,palm_front,10,300.03,465.98,4.04,80.0,19.5,70.0,0.0,17.32,18.3

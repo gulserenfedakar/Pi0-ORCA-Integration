@@ -47,15 +47,20 @@ def make_eval_env(init: str, action: str = "relative", max_delta_frac: float = 0
     return _thunk
 
 
-def evaluate_run_dir(run_dir: Path, n_episodes: int = 20) -> dict | None:
+def evaluate_run_dir(run_dir: Path, n_episodes: int = 200) -> dict | None:
     cfg_path = run_dir / "run_config.json"
-    if not cfg_path.exists():
-        return None
-    cfg = json.loads(cfg_path.read_text())
-    algo_name = cfg.get("algo", "ppo").lower()
-    init_mode = cfg.get("init", "random")
-    action_mode = cfg.get("action", "relative")
-    max_delta_frac = float(cfg.get("max_delta_frac", 0.05))
+    if cfg_path.exists():
+        cfg = json.loads(cfg_path.read_text())
+        algo_name = cfg.get("algo", "ppo").lower()
+        init_mode = cfg.get("init", "random")
+        action_mode = cfg.get("action", "relative")
+        max_delta_frac = float(cfg.get("max_delta_frac", 0.05))
+    else:
+        name_lower = run_dir.name.lower()
+        algo_name = "sac" if "sac" in name_lower else ("td3" if "td3" in name_lower else "ppo")
+        init_mode = "random"
+        action_mode = "relative"
+        max_delta_frac = 0.05
 
     model_path = run_dir / "best_model.zip"
     if not model_path.exists():
@@ -115,6 +120,28 @@ def evaluate_run_dir(run_dir: Path, n_episodes: int = 20) -> dict | None:
         hold_streaks.append(max_streak)
         min_angles.append(min_ang)
 
+    # Also evaluate with terminal hold latch (zero relative joint delta once inside goal cone & low angvel)
+    latched_successes = []
+    for ep in range(n_episodes):
+        venv.seed(20_000 + ep)
+        obs = venv.reset()
+        for _ in range(base_env.max_episode_steps):
+            ang_deg = float(np.rad2deg(base_env._red_face_up_angle_rad()))
+            ang_spd = float(np.linalg.norm(base_env._cube_qvel()[3:]))
+            if ang_deg <= 14.5 and ang_spd <= 0.95 and not base_env._cube_dropped():
+                act = np.zeros((1, 17), dtype=np.float32)
+            else:
+                act, _ = model.predict(obs, deterministic=True)
+            obs, _, dones, infos = venv.step(act)
+            if dones[0]:
+                latched_successes.append(bool(infos[0]["is_success"]))
+                break
+        else:
+            latched_successes.append(False)
+
+    aligned_min = [m for m, a in zip(min_angles, goal_aligned) if a]
+    aligned_fin = [f for f, a in zip(final_angles, goal_aligned) if a]
+
     venv.close()
     return {
         "Run": run_dir.name,
@@ -126,17 +153,20 @@ def evaluate_run_dir(run_dir: Path, n_episodes: int = 20) -> dict | None:
         "Goal_Align_Rate_pct": round(100.0 * float(np.mean(goal_aligned)), 1),
         "Mean_Hold_Streak_steps": round(float(np.mean(hold_streaks)), 1),
         "Held_Success_Rate_pct": round(100.0 * float(np.mean(successes)), 1),
+        "Latched_Success_Rate_pct": round(100.0 * float(np.mean(latched_successes)), 1),
         "Cube_Drop_Rate_pct": round(100.0 * float(np.mean(drops)), 1),
         "Min_Angle_Error_deg": round(float(np.mean(min_angles)), 2),
+        "Aligned_Min_Angle_deg": round(float(np.mean(aligned_min)), 2) if aligned_min else 0.0,
         "Final_Angle_Error_deg": round(float(np.mean(final_angles)), 2),
+        "Aligned_Final_Angle_deg": round(float(np.mean(aligned_fin)), 2) if aligned_fin else 0.0,
     }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--runs-dir", type=Path, default=REPO_ROOT / "runs")
-    parser.add_argument("--episodes", type=int, default=20)
-    parser.add_argument("--out-csv", type=Path, default=REPO_ROOT / "results" / "rl_algorithms_comparison.csv")
+    parser.add_argument("--runs-dir", type=Path, default=REPO_ROOT / "models")
+    parser.add_argument("--episodes", type=int, default=200)
+    parser.add_argument("--out-csv", type=Path, default=REPO_ROOT / "results" / "rl_reorient_benchmark.csv")
     args = parser.parse_args()
 
     if not args.runs_dir.exists():

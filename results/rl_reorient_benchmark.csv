@@ -1,4 +1,4 @@
-Run,Algorithm,Init,Action_Mode,Episodes,Policy_Latency_ms,Goal_Align_Rate_pct,Mean_Hold_Streak_steps,Held_Success_Rate_pct,Cube_Drop_Rate_pct,Min_Angle_Error_deg,Final_Angle_Error_deg
-ppo_reorient_random_10M,PPO,random,relative,20,0.292,85.0,16.6,50.0,0.0,14.7,19.04
-sac_reorient_random_10M,SAC,random,relative,20,0.33,85.0,21.0,80.0,0.0,16.53,18.37
-td3_reorient_random_10M,TD3,random,relative,20,0.238,60.0,13.8,55.0,5.0,34.43,46.36
+Run,Algorithm,Init,Action_Mode,Episodes,Policy_Latency_ms,Goal_Align_Rate_pct,Mean_Hold_Streak_steps,Held_Success_Rate_pct,Latched_Success_Rate_pct,Cube_Drop_Rate_pct,Min_Angle_Error_deg,Aligned_Min_Angle_deg,Final_Angle_Error_deg,Aligned_Final_Angle_deg
+drac_ppo_10M,PPO,random,relative,200,0.214,84.0,18.6,67.0,79.0,0.0,16.45,8.75,19.2,11.45
+drac_sac_10M,SAC,random,relative,200,0.257,72.5,16.6,64.5,69.5,0.0,20.58,6.89,24.58,8.84
+drac_td3_10M,TD3,random,relative,200,0.184,38.5,8.4,33.5,33.5,4.5,47.19,5.84,55.78,12.29

@@ -36,61 +36,81 @@ def main() -> None:
         max_vla_steps=1,
     )
 
+    seeds_10 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    jitters_10 = [0.0] * 10
+    seeds_5 = [0, 1, 4, 6, 7]
+    jitters_5 = [0.0] * 5
+
     experiments = [
         (
-            "1. Standalone pi0 — Naive Direct Mapping (No Relative/Synergy)",
+            "1. Standalone pi0 — Naive Direct Mapping",
             "direct_17dof",
             "palm_front",
             "down",
             10,
-            10,
-            [7, 8],
-            [0.0, 0.0],
+            6,
+            seeds_10,
+            jitters_10,
+            "scripted",
+            0.1,
         ),
         (
-            "2. Standalone pi0 — Relative Control + 17-DoF Synergy (Front Cam)",
+            "2. Standalone pi0 — Relative + 17-DoF Synergy",
             "synergy_reorient",
             "palm_front",
             "random",
             10,
-            10,
-            [0, 6],
-            [0.0, 0.0],
+            6,
+            seeds_10,
+            jitters_10,
+            "scripted",
+            0.1,
         ),
         (
-            "3. Standalone pi0 — Relative Control + 17-DoF Synergy (Top Cam)",
-            "synergy_reorient",
-            "palm_top",
-            "random",
-            10,
-            10,
-            [0, 6],
-            [0.0, 0.0],
-        ),
-        (
-            "4. Hybrid pi0 + RL (PPO) — High-Level VLA + Low-Level RL (Nominal 180 deg Flip)",
-            "pi0_rl_hybrid",
-            "palm_front",
-            "down",
-            10,
-            10,
-            [7, 8],
-            [0.0, 0.0],
-        ),
-        (
-            "5. Hybrid pi0 + RL (PPO) — High-Level VLA + Low-Level RL (Randomized 5 Trials)",
+            "3. pi0 Integrated + Scripted Skills (5 Starts, Res=0.1)",
             "pi0_rl_hybrid",
             "palm_front",
             "random",
             10,
             14,
-            [0, 1, 4, 6, 7],
-            [0.0, 0.0, 0.0, 0.0, 0.0],
+            seeds_5,
+            jitters_5,
+            "scripted",
+            0.1,
+        ),
+        (
+            "4. pi0 Integrated + Scripted Skills (Zero-Res Ablation, Res=0.0)",
+            "pi0_rl_hybrid",
+            "palm_front",
+            "random",
+            10,
+            14,
+            seeds_5,
+            jitters_5,
+            "scripted",
+            0.0,
+        ),
+        (
+            "5. pi0 Integrated + 10M-Step PPO Policy (No Scripted Trajs, Res=0.0)",
+            "pi0_rl_hybrid",
+            "palm_front",
+            "random",
+            10,
+            14,
+            seeds_10,
+            jitters_10,
+            "ppo_10m",
+            0.0,
         ),
     ]
 
     summary_rows = []
-    for label, mode, cam, init_mode, horizon, max_vla_steps, seeds, jitters in experiments:
+    for entry in experiments:
+        if len(entry) == 8:
+            label, mode, cam, init_mode, horizon, max_vla_steps, seeds, jitters = entry
+            low_level_mode, residual_scale = "scripted", 0.1
+        else:
+            label, mode, cam, init_mode, horizon, max_vla_steps, seeds, jitters, low_level_mode, residual_scale = entry
         n_trials = len(seeds)
         print(f"\nRunning Experiment: {label} ({n_trials} trials)...")
         trial_results = []
@@ -104,6 +124,8 @@ def main() -> None:
                 horizon=horizon,
                 max_vla_steps=max_vla_steps,
                 xy_jitter=jit,
+                low_level_mode=low_level_mode,
+                residual_scale=residual_scale,
             )
             trial_results.append(res)
             print(

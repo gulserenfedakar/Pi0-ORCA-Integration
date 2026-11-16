@@ -59,10 +59,10 @@ sq
 tail -f logs/orca_rl_*_1.out
 ```
 
-Once the jobs complete, evaluate all trained checkpoints (`PPO`, `SAC`, `TD3`) across 20 held-out episodes to generate `results/rl_reorient_benchmark.csv`:
+Once the jobs complete, evaluate all trained checkpoints (`PPO`, `SAC`, `TD3`) across 200 fixed seeds (`seeds 20000–20199`) to generate `results/rl_reorient_benchmark.csv`:
 
 ```bash
-python scripts/evaluate_rl_reorient.py --runs-dir runs --episodes 20
+python scripts/evaluate_rl_reorient.py --runs-dir models --episodes 200
 ```
 
 ---

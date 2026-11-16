@@ -47,7 +47,7 @@ def classify_high_level_reorient_skill(info: dict, model_actions: np.ndarray) ->
     qvel = info["cube_qvel"]
     ang_speed = float(np.linalg.norm(qvel[3:]))
 
-    if angle_deg <= 14.2 and ang_speed <= 0.90 and not info["dropped"]:
+    if angle_deg <= 14.5 and ang_speed <= 0.95 and not info["dropped"]:
         return "HOLD_STILL", np.zeros(17, dtype=np.float32)
 
     normal = np.asarray(info["red_face_world_normal"], dtype=np.float64)
@@ -65,20 +65,46 @@ def classify_high_level_reorient_skill(info: dict, model_actions: np.ndarray) ->
 
 
 class LowLevelReorientRLController:
-    """Low-level 17-DoF relative-joint controller operating at 20 Hz under high-level pi0 guidance."""
+    """Low-level 17-DoF relative-joint controller operating at 20 Hz under high-level pi0 integration."""
 
-    def __init__(self) -> None:
+    def __init__(self, low_level_mode: str = "scripted", residual_scale: float = 0.1) -> None:
+        self.low_level_mode = low_level_mode
+        self.residual_scale = float(residual_scale)
         traj_path = REPO_ROOT / "orca_vla" / "reorient_expert_trajs.npz"
         self.trajs = dict(np.load(traj_path)) if traj_path.exists() else {}
-        self.ppo_model = None
-        ppo_path = REPO_ROOT / "models" / "ppo_cube_reorient.zip"
-        if ppo_path.exists():
-            try:
-                from stable_baselines3 import PPO
+        self.rl_model = None
+        self.vec_norm = None
 
-                self.ppo_model = PPO.load(str(ppo_path), device="cpu")
-            except Exception:
-                self.ppo_model = None
+        if low_level_mode in ("ppo_10m", "sac_10m"):
+            algo_tag = "ppo" if low_level_mode == "ppo_10m" else "sac"
+            model_dir = REPO_ROOT / "models" / f"drac_{algo_tag}_10M"
+            if (model_dir / "best_model.zip").exists():
+                from stable_baselines3 import PPO, SAC
+                from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+                cls = PPO if algo_tag == "ppo" else SAC
+                dummy = DummyVecEnv(
+                    [
+                        lambda: RelativeJointTargetAction(
+                            OrcaHandRightCubeOrientation(version="v2", initial_red_face="random"),
+                            max_delta_frac=0.05,
+                        )
+                    ]
+                )
+                self.vec_norm = VecNormalize.load(str(model_dir / "vecnormalize.pkl"), dummy)
+                self.vec_norm.training = False
+                self.vec_norm.norm_reward = False
+                self.rl_model = cls.load(str(model_dir / "best_model.zip"), device="cpu")
+        else:
+            ppo_path = REPO_ROOT / "models" / "ppo_cube_reorient.zip"
+            if ppo_path.exists():
+                try:
+                    from stable_baselines3 import PPO
+
+                    self.rl_model = PPO.load(str(ppo_path), device="cpu")
+                except Exception:
+                    self.rl_model = None
+
         self._active_norm_key: str | None = None
         self._step_cursor: int = 0
 
@@ -91,20 +117,28 @@ class LowLevelReorientRLController:
         if skill == "HOLD_STILL":
             return np.zeros(17, dtype=np.float32)
 
-        if self._active_norm_key in self.trajs:
+        if self.low_level_mode == "scripted" and self._active_norm_key in self.trajs:
             seq = self.trajs[self._active_norm_key]
             if self._step_cursor < len(seq):
                 base_act = seq[self._step_cursor].astype(np.float32).copy()
                 self._step_cursor += 1
-                if np.rad2deg(info["red_face_up_angle_rad"]) > 35.0:
-                    base_act = np.clip(base_act + vla_residual * 0.1, -1.0, 1.0)
+                if self.residual_scale > 0.0 and np.rad2deg(info["red_face_up_angle_rad"]) > 35.0:
+                    base_act = np.clip(base_act + vla_residual * self.residual_scale, -1.0, 1.0)
                 return base_act
 
-        if self.ppo_model is not None:
-            obs_clean = obs.copy()
-            obs_clean[17:21] = 0.0
-            act, _ = self.ppo_model.predict(obs_clean.astype(np.float32), deterministic=True)
-            return np.clip(act.astype(np.float32), -1.0, 1.0)
+        if self.rl_model is not None:
+            if self.vec_norm is not None:
+                norm_obs = self.vec_norm.normalize_obs(obs[None].astype(np.float32))
+                act, _ = self.rl_model.predict(norm_obs, deterministic=True)
+                base_act = act[0].astype(np.float32)
+            else:
+                obs_clean = obs.copy()
+                obs_clean[17:21] = 0.0
+                act, _ = self.rl_model.predict(obs_clean.astype(np.float32), deterministic=True)
+                base_act = act.astype(np.float32)
+            if self.residual_scale > 0.0 and np.rad2deg(info["red_face_up_angle_rad"]) > 35.0:
+                base_act = np.clip(base_act + vla_residual * self.residual_scale, -1.0, 1.0)
+            return np.clip(base_act, -1.0, 1.0)
 
         return np.zeros(17, dtype=np.float32)
 
@@ -118,6 +152,8 @@ def run_episode(
     horizon: int = 10,
     max_vla_steps: int = 14,
     xy_jitter: float = 0.0,
+    low_level_mode: str = "scripted",
+    residual_scale: float = 0.1,
     prompt: str = "flip the cube red face up and hold it still in the palm",
 ) -> dict:
     base_env = OrcaHandRightCubeOrientation(
@@ -135,7 +171,7 @@ def run_episode(
     obs_config = OrcaVLAObservationConfig(external_cam=camera, wrist_cam="palm_top", num_joints=17)
     obs_builder = OrcaVLAObservationBuilder(m, d, renderer, config=obs_config)
 
-    rl_ctrl = LowLevelReorientRLController()
+    rl_ctrl = LowLevelReorientRLController(low_level_mode=low_level_mode, residual_scale=residual_scale)
     rl_ctrl.reset(info)
 
     init_angle_deg = float(np.rad2deg(info["red_face_up_angle_rad"]))
@@ -247,6 +283,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--steps", type=int, default=14)
     parser.add_argument("--horizon", type=int, default=10)
+    parser.add_argument("--low-level", choices=["scripted", "ppo_10m", "sac_10m"], default="scripted")
+    parser.add_argument("--residual-scale", type=float, default=0.1, help="Set to 0.0 to ablate pi0 residual")
     args = parser.parse_args()
 
     print("Loading policy 'pi0_libero' for 17-DoF ORCA In-Hand Cube Reorientation...")
@@ -262,6 +300,8 @@ def main() -> None:
         seed=args.seed,
         horizon=args.horizon,
         max_vla_steps=args.steps,
+        low_level_mode=args.low_level,
+        residual_scale=args.residual_scale,
     )
     print("\nEpisode Summary:")
     for k, v in res.items():

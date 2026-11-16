@@ -44,13 +44,14 @@ For the 17-DoF cube reorientation task wrapped with `RelativeJointTargetAction` 
 
 ---
 
-## 4. Hierarchical $\pi_0$ + RL Architecture (`scripts/run_cube_reorient.py`)
+## 4. $\pi_0$-Integrated + Low-Level RL / Skill Architecture (`scripts/run_cube_reorient.py`)
 
-To bridge the frequency and dexterity gap between high-level visual reasoning (`~3.5 Hz` $\pi_0$ inference) and contact-rich finger gaiting (`20 Hz` relative joint control), the hybrid controller (`mode="pi0_rl_hybrid"`) decouples control into two layers:
+To evaluate both standalone VLA behavior and closed-loop integration alongside high-frequency (`100 Hz`, $\Delta t = 0.01\text{ s}$) finger gaiting, `run_cube_reorient.py` (`mode="pi0_rl_hybrid"`) couples two layers:
 
-1. **High-Level VLA Coordinator (`classify_high_level_reorient_skill`):**
-   * At each VLA replanning step, $\pi_0$ processes the live `palm_front` and `palm_top` RGB observations (`224 x 224`) and outputs an action chunk.
-   * The coordinator selects the active discrete manipulation skill (`ROLL_X_POS`, `ROLL_X_NEG`, `ROLL_Y_POS`, `ROLL_Y_NEG`, `FLIP_180`, or `HOLD_STILL`) and extracts a bounded residual modulation vector from the $\pi_0$ chunk.
-   * Once the red face normal enters the goal cone ($\theta \le 14.2^\circ$) with low angular velocity ($\|\omega\| \le 0.90\text{ rad/s}$), the coordinator transitions to `HOLD_STILL`, zeroing relative joint deltas so the hand maintains a stationary cradle for the required 25 consecutive steps ($1.25\text{ s}$ at $20\text{ Hz}$ control).
-2. **Low-Level 17-DoF RL Policy (`LowLevelReorientRLController`):**
-   * Executes 10 relative-joint control steps ($20\text{ Hz}$) per high-level VLA query using calibrated relative-joint trajectories and a pretrained `stable-baselines3` PPO policy (`models/ppo_cube_reorient.zip`).
+1. **Closed-Loop $\pi_0$ Visual Inference & Simulator-State Phase Latch (`classify_high_level_reorient_skill`):**
+   * Every 10 simulation steps, $\pi_0$ (`pi0_libero`) renders and processes the live `palm_front` and `palm_top` RGB observations (`224 x 224`) on the GPU (`~274–300 ms` per chunk).
+   * Skill phase selection (`ROLL_X_POS`, `ROLL_X_NEG`, `ROLL_Y_POS`, `ROLL_Y_NEG`, `FLIP_180`) and the terminal stability latch (`HOLD_STILL` when $\theta \le 14.5^\circ$ and $\|\omega\| \le 0.95\text{ rad/s}$) are determined from simulator state (`info["red_face_world_normal"]` and `info["red_face_up_angle_rad"]`), while extracting a bounded residual vector from $\pi_0$'s chunk (which can be ablated to zero via `--residual-scale 0.0`).
+   * Once `HOLD_STILL` is latched, relative joint deltas are zeroed so the hand maintains a stationary cradle for the required 25 consecutive control steps ($0.25\text{ s}$ at $100\text{ Hz}$ control).
+2. **Low-Level 17-DoF Controller (`LowLevelReorientRLController`):**
+   * Supports both **trained 10M-step RL policies** (`--low-level ppo_10m` or `sac_10m`, running `models/drac_{ppo,sac}_10M/best_model.zip` normalized via `vecnormalize.pkl` without any scripted trajectories) and **scripted skill primitives** (`--low-level scripted`, replaying `orca_vla/reorient_expert_trajs.npz` with `models/ppo_cube_reorient.zip` fallback).
+   * Ablating $\pi_0$'s residual (`--residual-scale 0.0`) confirms that zero-shot $\pi_0$ does not drive low-level finger gaiting; physical reorientation is executed by the 100 Hz low-level RL policy or skill trajectory while $\pi_0$ operates in the visual inference loop.
