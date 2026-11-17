@@ -2,7 +2,7 @@
 in-hand cube reorientation benchmark under matched conditions.
 
 Usage:
-    python scripts/evaluate_rl_reorient.py --runs-dir runs --episodes 20
+    python scripts/evaluate_rl_reorient.py --runs-dir models --episodes 200
 """
 
 from __future__ import annotations

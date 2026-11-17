@@ -65,7 +65,7 @@ def classify_high_level_reorient_skill(info: dict, model_actions: np.ndarray) ->
 
 
 class LowLevelReorientRLController:
-    """Low-level 17-DoF relative-joint controller operating at 20 Hz under high-level pi0 integration."""
+    """Low-level 17-DoF relative-joint controller operating at 100 Hz under high-level pi0 integration."""
 
     def __init__(self, low_level_mode: str = "scripted", residual_scale: float = 0.1) -> None:
         self.low_level_mode = low_level_mode
