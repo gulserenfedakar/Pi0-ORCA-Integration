@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" width="1200" height="820" style="background:#F8FAFC;font-family:Calibri,Segoe UI,sans-serif">
+<rect x="0" y="0" width="1200" height="68" fill="#7A003C"/>
+<text x="28" y="30" fill="#FFFFFF" font-size="21" font-weight="bold">ORCA Hand Ultrasonic &amp; AprilTag Real2Sim Noise Model &amp; Gate Audit — System Identification & Validation</text>
+<text x="28" y="53" fill="#FDBF57" font-size="13.5">25-Ray Cone (15° Half-Angle, +2.9 mm Offset, ≤22 mm Dead Zone, 25° Specular Limit, Hand-Echo Rejection &amp; 3.2 mm / 10 Hz Quantization)</text>
+<rect x="40" y="90" width="540" height="330" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+<text x="58" y="116" fill="#1E293B" font-size="16" font-weight="bold">A. Static Distance Calibration &amp; Dead Zone (MAE = 3.3 mm)</text>
+<text x="58" y="134" fill="#475569" font-size="12">Real HC-SR04 vs. Calibrated 25-Ray Sim (Pos 1–5 + Held-out Pos 6; 3.2 mm Quantization)</text>
+<rect x="100" y="155" width="108.8" height="215" fill="#FEE2E2" opacity="0.65"/>
+<text x="106" y="173" fill="#DC2626" font-size="11" font-weight="bold">Dead Zone (≤22 mm)</text>
+<text x="106" y="187" fill="#DC2626" font-size="10">Real: (17, 20, 23) mm</text>
+<line x1="100.0" y1="155" x2="100.0" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<line x1="100" y1="370.0" x2="545" y2="370.0" stroke="#E2E8F0" stroke-width="1"/>
+<text x="100.0" y="386" fill="#475569" font-size="11" text-anchor="middle">0</text>
+<text x="92" y="374.0" fill="#475569" font-size="11" text-anchor="end">0</text>
+<line x1="198.9" y1="155" x2="198.9" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<line x1="100" y1="322.2" x2="545" y2="322.2" stroke="#E2E8F0" stroke-width="1"/>
+<text x="198.9" y="386" fill="#475569" font-size="11" text-anchor="middle">20</text>
+<text x="92" y="326.2" fill="#475569" font-size="11" text-anchor="end">20</text>
+<line x1="297.8" y1="155" x2="297.8" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<line x1="100" y1="274.4" x2="545" y2="274.4" stroke="#E2E8F0" stroke-width="1"/>
+<text x="297.8" y="386" fill="#475569" font-size="11" text-anchor="middle">40</text>
+<text x="92" y="278.4" fill="#475569" font-size="11" text-anchor="end">40</text>
+<line x1="396.7" y1="155" x2="396.7" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<line x1="100" y1="226.7" x2="545" y2="226.7" stroke="#E2E8F0" stroke-width="1"/>
+<text x="396.7" y="386" fill="#475569" font-size="11" text-anchor="middle">60</text>
+<text x="92" y="230.7" fill="#475569" font-size="11" text-anchor="end">60</text>
+<line x1="495.6" y1="155" x2="495.6" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<line x1="100" y1="178.9" x2="545" y2="178.9" stroke="#E2E8F0" stroke-width="1"/>
+<text x="495.6" y="386" fill="#475569" font-size="11" text-anchor="middle">80</text>
+<text x="92" y="182.9" fill="#475569" font-size="11" text-anchor="end">80</text>
+<rect x="100" y="155" width="445" height="215" fill="none" stroke="#64748B" stroke-width="1.2"/>
+<text x="322.5" y="404" fill="#1E293B" font-size="12" font-weight="bold" text-anchor="middle">Camera Reference Distance to Cube Face (mm)</text>
+<text x="58" y="262.5" fill="#1E293B" font-size="12" font-weight="bold" text-anchor="middle" transform="rotate(-90 58 262.5)">Ultrasonic Reading (mm)</text>
+<polyline points="100,322.2 198.9,322.2 545.0,155.0" fill="none" stroke="#94A3B8" stroke-width="2" stroke-dasharray="5,4"/>
+<line x1="122.7" y1="322.2" x2="122.7" y2="322.2" stroke="#64748B" stroke-width="1.2"/>
+<circle cx="122.7" cy="322.2" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<rect x="118.2" y="317.7" width="9" height="9" fill="#EA580C" stroke="#FFFFFF" stroke-width="1"/>
+<line x1="233.5" y1="291.2" x2="233.5" y2="306.0" stroke="#64748B" stroke-width="1.2"/>
+<circle cx="233.5" cy="291.2" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<rect x="229.0" y="301.5" width="9" height="9" fill="#EA580C" stroke="#FFFFFF" stroke-width="1"/>
+<line x1="308.7" y1="276.8" x2="308.7" y2="267.5" stroke="#64748B" stroke-width="1.2"/>
+<circle cx="308.7" cy="276.8" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<rect x="304.2" y="263.0" width="9" height="9" fill="#EA580C" stroke="#FFFFFF" stroke-width="1"/>
+<line x1="403.6" y1="224.3" x2="403.6" y2="225.0" stroke="#64748B" stroke-width="1.2"/>
+<circle cx="403.6" cy="224.3" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<rect x="399.1" y="220.5" width="9" height="9" fill="#EA580C" stroke="#FFFFFF" stroke-width="1"/>
+<line x1="481.2" y1="178.9" x2="481.2" y2="185.3" stroke="#64748B" stroke-width="1.2"/>
+<circle cx="481.2" cy="178.9" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<rect x="476.7" y="180.8" width="9" height="9" fill="#EA580C" stroke="#FFFFFF" stroke-width="1"/>
+<line x1="367.0" y1="245.8" x2="367.0" y2="236.5" stroke="#64748B" stroke-width="1.2"/>
+<circle cx="367.0" cy="245.8" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<rect x="362.5" y="232.0" width="9" height="9" fill="#16A34A" stroke="#FFFFFF" stroke-width="1"/>
+<text x="375.0" y="249.8" fill="#16A34A" font-size="11" font-weight="bold">Held-out (+3.9 mm)</text>
+<circle cx="330" cy="330" r="5" fill="#2563EB"/><text x="342" y="334" fill="#1E293B" font-size="11">Real HC-SR04</text>
+<rect x="325" y="345" width="9" height="9" fill="#EA580C"/><text x="342" y="354" fill="#1E293B" font-size="11">Calibrated Sim (25-Ray)</text>
+<rect x="610" y="90" width="540" height="330" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+<text x="628" y="116" fill="#1E293B" font-size="16" font-weight="bold">B. Specular Reflection Curve &amp; Corner Rebound (angle02, N = 535)</text>
+<text x="628" y="134" fill="#475569" font-size="12">Logistic Fit (θ_50 = 26.5°, k = 0.12) + 40–45° Adjacent-Face/Edge Diffraction Rebound</text>
+<line x1="670" y1="370.0" x2="1115" y2="370.0" stroke="#E2E8F0" stroke-width="1"/>
+<text x="662" y="374.0" fill="#475569" font-size="11" text-anchor="end">0%</text>
+<line x1="670" y1="316.2" x2="1115" y2="316.2" stroke="#E2E8F0" stroke-width="1"/>
+<text x="662" y="320.2" fill="#475569" font-size="11" text-anchor="end">25%</text>
+<line x1="670" y1="262.5" x2="1115" y2="262.5" stroke="#E2E8F0" stroke-width="1"/>
+<text x="662" y="266.5" fill="#475569" font-size="11" text-anchor="end">50%</text>
+<line x1="670" y1="208.8" x2="1115" y2="208.8" stroke="#E2E8F0" stroke-width="1"/>
+<text x="662" y="212.8" fill="#475569" font-size="11" text-anchor="end">75%</text>
+<line x1="670" y1="155.0" x2="1115" y2="155.0" stroke="#E2E8F0" stroke-width="1"/>
+<text x="662" y="159.0" fill="#475569" font-size="11" text-anchor="end">100%</text>
+<line x1="670.0" y1="155" x2="670.0" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<text x="670.0" y="386" fill="#475569" font-size="11" text-anchor="middle">0°</text>
+<line x1="768.9" y1="155" x2="768.9" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<text x="768.9" y="386" fill="#475569" font-size="11" text-anchor="middle">10°</text>
+<line x1="867.8" y1="155" x2="867.8" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<text x="867.8" y="386" fill="#475569" font-size="11" text-anchor="middle">20°</text>
+<line x1="917.2" y1="155" x2="917.2" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<text x="917.2" y="386" fill="#475569" font-size="11" text-anchor="middle">25°</text>
+<line x1="966.7" y1="155" x2="966.7" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<text x="966.7" y="386" fill="#475569" font-size="11" text-anchor="middle">30°</text>
+<line x1="1065.6" y1="155" x2="1065.6" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<text x="1065.6" y="386" fill="#475569" font-size="11" text-anchor="middle">40°</text>
+<line x1="1115.0" y1="155" x2="1115.0" y2="370" stroke="#E2E8F0" stroke-width="1"/>
+<text x="1115.0" y="386" fill="#475569" font-size="11" text-anchor="middle">45°</text>
+<line x1="917.2" y1="155" x2="917.2" y2="370" stroke="#DC2626" stroke-width="2" stroke-dasharray="6,4"/>
+<text x="923.2" y="175" fill="#DC2626" font-size="11" font-weight="bold">θ_max = 25° Cutoff (88% Agree)</text>
+<polyline points="670.0,163.6 679.9,164.6 689.8,165.8 699.7,167.1 709.6,168.5 719.4,170.1 729.3,171.9 739.2,173.9 749.1,176.1 759.0,178.5 768.9,181.1 778.8,184.0 788.7,187.1 798.6,190.5 808.4,194.2 818.3,198.2 828.2,202.5 838.1,207.1 848.0,212.0 857.9,217.1 867.8,222.6 877.7,228.3 887.6,234.2 897.4,240.3 907.3,246.5 917.2,252.9 927.1,259.3 937.0,265.7 946.9,272.1 956.8,278.5 966.7,284.7 976.6,290.8 986.4,296.7 996.3,302.4 1006.2,307.9 1016.1,313.0 1026.0,317.9 1035.9,322.5 1045.8,326.8 1055.7,330.8 1065.6,334.5 1075.4,337.9 1085.3,341.0 1095.2,343.9 1105.1,346.5 1115.0,348.9" fill="none" stroke="#7A003C" stroke-width="2.8"/>
+<circle cx="719.4" cy="267.4" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<text x="719.4" y="259.4" fill="#1E293B" font-size="10" font-weight="bold" text-anchor="middle">48%</text>
+<circle cx="793.6" cy="191.9" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<text x="793.6" y="183.9" fill="#1E293B" font-size="10" font-weight="bold" text-anchor="middle">83%</text>
+<circle cx="843.1" cy="190.8" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<text x="843.1" y="182.8" fill="#1E293B" font-size="10" font-weight="bold" text-anchor="middle">83%</text>
+<circle cx="892.5" cy="217.2" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<text x="892.5" y="209.2" fill="#1E293B" font-size="10" font-weight="bold" text-anchor="middle">71%</text>
+<circle cx="941.9" cy="285.1" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<text x="941.9" y="277.1" fill="#1E293B" font-size="10" font-weight="bold" text-anchor="middle">39%</text>
+<circle cx="991.4" cy="282.0" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<text x="991.4" y="274.0" fill="#1E293B" font-size="10" font-weight="bold" text-anchor="middle">41%</text>
+<circle cx="1040.8" cy="360.4" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<text x="1040.8" y="352.4" fill="#1E293B" font-size="10" font-weight="bold" text-anchor="middle">4%</text>
+<circle cx="1090.3" cy="262.5" r="5.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.2"/>
+<text x="1090.3" y="254.5" fill="#1E293B" font-size="10" font-weight="bold" text-anchor="middle">50%</text>
+<rect x="670" y="155" width="445" height="215" fill="none" stroke="#64748B" stroke-width="1.2"/>
+<text x="892.5" y="404" fill="#1E293B" font-size="12" font-weight="bold" text-anchor="middle">Cube Face Incidence Angle to Ultrasonic Beam θ_inc (deg)</text>
+<text x="628" y="262.5" fill="#1E293B" font-size="12" font-weight="bold" text-anchor="middle" transform="rotate(-90 628 262.5)">Valid Cube Echo Rate (%)</text>
+<rect x="40" y="445" width="540" height="330" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+<text x="58" y="471" fill="#1E293B" font-size="16" font-weight="bold">C. Ultrasonic Regimes &amp; RL Zero-Masking Filter (N = 3,269)</text>
+<text x="58" y="489" fill="#475569" font-size="12">7 Wrist-Locked Runs: Dead Zone (≤22 mm) &amp; Tilt Wall Jumps (&gt;150 mm) Mapped to 0.0</text>
+<rect x="119.0" y="682.7" width="52" height="42.3" rx="4" fill="#F59E0B"/>
+<text x="145.0" y="666.7" fill="#1E293B" font-size="11" font-weight="bold" text-anchor="middle">217</text>
+<text x="145.0" y="678.7" fill="#F59E0B" font-size="9.5" font-weight="bold" text-anchor="middle">RL Filter → 0</text>
+<text x="145.0" y="740" fill="#334155" font-size="10" text-anchor="middle">Dead Zone</text>
+<text x="145.0" y="753" fill="#334155" font-size="10" text-anchor="middle">(17–22 mm)</text>
+<rect x="190.0" y="541.6" width="52" height="183.4" rx="4" fill="#16A34A"/>
+<text x="216.0" y="525.6" fill="#1E293B" font-size="11" font-weight="bold" text-anchor="middle">941</text>
+<text x="216.0" y="537.6" fill="#16A34A" font-size="9.5" font-weight="bold" text-anchor="middle">Valid (v_t=1)</text>
+<text x="216.0" y="740" fill="#334155" font-size="10" text-anchor="middle">Near Palm</text>
+<text x="216.0" y="753" fill="#334155" font-size="10" text-anchor="middle">(23–50 mm)</text>
+<rect x="261.0" y="650.7" width="52" height="74.3" rx="4" fill="#2563EB"/>
+<text x="287.0" y="634.7" fill="#1E293B" font-size="11" font-weight="bold" text-anchor="middle">381</text>
+<text x="287.0" y="646.7" fill="#2563EB" font-size="9.5" font-weight="bold" text-anchor="middle">Valid (v_t=1)</text>
+<text x="287.0" y="740" fill="#334155" font-size="10" text-anchor="middle">Far Palm</text>
+<text x="287.0" y="753" fill="#334155" font-size="10" text-anchor="middle">(51–150 mm)</text>
+<rect x="332.0" y="615.0" width="52" height="110.0" rx="4" fill="#DC2626"/>
+<text x="358.0" y="599.0" fill="#1E293B" font-size="11" font-weight="bold" text-anchor="middle">564</text>
+<text x="358.0" y="611.0" fill="#DC2626" font-size="9.5" font-weight="bold" text-anchor="middle">RL Filter → 0</text>
+<text x="358.0" y="740" fill="#334155" font-size="10" text-anchor="middle">Tilt Jump ~58cm</text>
+<text x="358.0" y="753" fill="#334155" font-size="10" text-anchor="middle">(151–800mm)</text>
+<rect x="403.0" y="538.0" width="52" height="187.0" rx="4" fill="#991B1B"/>
+<text x="429.0" y="522.0" fill="#1E293B" font-size="11" font-weight="bold" text-anchor="middle">959</text>
+<text x="429.0" y="534.0" fill="#991B1B" font-size="9.5" font-weight="bold" text-anchor="middle">RL Filter → 0</text>
+<text x="429.0" y="740" fill="#334155" font-size="10" text-anchor="middle">Wall Jump ~129cm</text>
+<text x="429.0" y="753" fill="#334155" font-size="10" text-anchor="middle">(>800 mm)</text>
+<rect x="474.0" y="684.6" width="52" height="40.4" rx="4" fill="#64748B"/>
+<text x="500.0" y="668.6" fill="#1E293B" font-size="11" font-weight="bold" text-anchor="middle">207</text>
+<text x="500.0" y="680.6" fill="#64748B" font-size="9.5" font-weight="bold" text-anchor="middle">RL Filter → 0</text>
+<text x="500.0" y="740" fill="#334155" font-size="10" text-anchor="middle">No Echo</text>
+<text x="500.0" y="753" fill="#334155" font-size="10" text-anchor="middle">(Timeout)</text>
+<rect x="100" y="510" width="445" height="215" fill="none" stroke="#64748B" stroke-width="1.2"/>
+<text x="58" y="617.5" fill="#1E293B" font-size="12" font-weight="bold" text-anchor="middle" transform="rotate(-90 58 617.5)">Sample Count (N = 3,269)</text>
+<rect x="610" y="445" width="540" height="330" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+<text x="628" y="471" fill="#1E293B" font-size="16" font-weight="bold">D. Valid Echo Rate: Raw Twin vs. Hand-Specular Fix (≤10% Gate)</text>
+<text x="628" y="489" fill="#475569" font-size="12">Adding Hand-Echo Deflection (p_survive=0.22) Fixes run07/08 Full-Replay Gap (22% → 5%)</text>
+<line x1="665" y1="705.0" x2="1120" y2="705.0" stroke="#E2E8F0" stroke-width="1"/>
+<text x="657" y="709.0" fill="#475569" font-size="11" text-anchor="end">0%</text>
+<line x1="665" y1="656.2" x2="1120" y2="656.2" stroke="#E2E8F0" stroke-width="1"/>
+<text x="657" y="660.2" fill="#475569" font-size="11" text-anchor="end">25%</text>
+<line x1="665" y1="607.5" x2="1120" y2="607.5" stroke="#E2E8F0" stroke-width="1"/>
+<text x="657" y="611.5" fill="#475569" font-size="11" text-anchor="end">50%</text>
+<line x1="665" y1="558.8" x2="1120" y2="558.8" stroke="#E2E8F0" stroke-width="1"/>
+<text x="657" y="562.8" fill="#475569" font-size="11" text-anchor="end">75%</text>
+<line x1="665" y1="510.0" x2="1120" y2="510.0" stroke="#E2E8F0" stroke-width="1"/>
+<text x="657" y="514.0" fill="#475569" font-size="11" text-anchor="end">100%</text>
+<rect x="675.0" y="513.6" width="16" height="191.4" fill="#2563EB"/>
+<rect x="693.0" y="518.0" width="16" height="187.0" fill="#F59E0B"/>
+<rect x="711.0" y="518.0" width="16" height="187.0" fill="#16A34A"/>
+<text x="701.0" y="508.6" fill="#15803D" font-size="9" font-weight="bold" text-anchor="middle">Gap 2.2%</text>
+<text x="701.0" y="720" fill="#334155" font-size="10" text-anchor="middle">static01</text>
+<text x="701.0" y="732" fill="#334155" font-size="10" text-anchor="middle">(Still)</text>
+<rect x="750.8" y="604.4" width="16" height="100.6" fill="#2563EB"/>
+<rect x="768.8" y="601.5" width="16" height="103.5" fill="#F59E0B"/>
+<rect x="786.8" y="601.5" width="16" height="103.5" fill="#16A34A"/>
+<text x="776.8" y="596.5" fill="#15803D" font-size="9" font-weight="bold" text-anchor="middle">Gap 1.5%</text>
+<text x="776.8" y="720" fill="#334155" font-size="10" text-anchor="middle">angle02</text>
+<text x="776.8" y="732" fill="#334155" font-size="10" text-anchor="middle">(±45° Tilt)</text>
+<rect x="826.7" y="635.0" width="16" height="70.0" fill="#2563EB"/>
+<rect x="844.7" y="623.7" width="16" height="81.3" fill="#F59E0B"/>
+<rect x="862.7" y="623.7" width="16" height="81.3" fill="#16A34A"/>
+<text x="852.7" y="618.7" fill="#15803D" font-size="9" font-weight="bold" text-anchor="middle">Gap 5.8%</text>
+<text x="852.7" y="720" fill="#334155" font-size="10" text-anchor="middle">run01</text>
+<text x="852.7" y="732" fill="#334155" font-size="10" text-anchor="middle">(4cm Replay)</text>
+<rect x="902.5" y="531.0" width="16" height="174.0" fill="#2563EB"/>
+<rect x="920.5" y="510.0" width="16" height="195.0" fill="#F59E0B"/>
+<rect x="938.5" y="510.0" width="16" height="195.0" fill="#16A34A"/>
+<text x="928.5" y="505.0" fill="#15803D" font-size="9" font-weight="bold" text-anchor="middle">Gap 10.7%</text>
+<text x="928.5" y="720" fill="#334155" font-size="10" text-anchor="middle">run05</text>
+<text x="928.5" y="732" fill="#334155" font-size="10" text-anchor="middle">(3cm Bistatic)</text>
+<rect x="978.3" y="677.4" width="16" height="27.6" fill="#2563EB"/>
+<rect x="996.3" y="633.7" width="16" height="71.3" fill="#F59E0B"/>
+<rect x="1014.3" y="668.7" width="16" height="36.3" fill="#16A34A"/>
+<text x="1004.3" y="628.7" fill="#15803D" font-size="9" font-weight="bold" text-anchor="middle">Gap 4.5%</text>
+<text x="1004.3" y="720" fill="#334155" font-size="10" text-anchor="middle">run07</text>
+<text x="1004.3" y="732" fill="#334155" font-size="10" text-anchor="middle">(Full Replay)</text>
+<rect x="1054.2" y="675.1" width="16" height="29.9" fill="#2563EB"/>
+<rect x="1072.2" y="635.3" width="16" height="69.7" fill="#F59E0B"/>
+<rect x="1090.2" y="668.2" width="16" height="36.8" fill="#16A34A"/>
+<text x="1080.2" y="630.3" fill="#15803D" font-size="9" font-weight="bold" text-anchor="middle">Gap 3.6%</text>
+<text x="1080.2" y="720" fill="#334155" font-size="10" text-anchor="middle">run08</text>
+<text x="1080.2" y="732" fill="#334155" font-size="10" text-anchor="middle">(124° Replay)</text>
+<rect x="665" y="510" width="455" height="195" fill="none" stroke="#64748B" stroke-width="1.2"/>
+<rect x="670" y="741" width="11" height="11" fill="#2563EB"/><text x="685" y="751" fill="#1E293B" font-size="10.5">Real HC-SR04</text>
+<rect x="775" y="741" width="11" height="11" fill="#F59E0B"/><text x="790" y="751" fill="#1E293B" font-size="10.5">Raw Twin (No Finger Specular Limit)</text>
+<rect x="990" y="741" width="11" height="11" fill="#16A34A"/><text x="1005" y="751" fill="#1E293B" font-size="10.5">Our Calibrated Twin</text>
+</svg>

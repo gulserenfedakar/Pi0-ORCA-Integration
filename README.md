@@ -33,6 +33,7 @@ Pi0-ORCA-Integration/
 │   ├── cameras.py                  # Offscreen MuJoCo RGB camera renderer and virtual palmar viewpoints
 │   ├── observations.py             # Multi-camera + proprioceptive observation builders for pi0
 │   ├── actions.py                  # 17-DoF ORCA hand action-space and in-hand synergy adapters
+│   ├── real2sim_sensors.py         # Calibrated dual-camera AprilTag & 25-ray ultrasonic Real2Sim wrappers
 │   └── reorient_expert_trajs.npz   # Reference relative-joint trajectories across canonical cube orientations
 ├── scripts/
 │   ├── check_gpu_environment.py    # Hardware, VRAM, and headless EGL rendering verification
@@ -56,7 +57,8 @@ Pi0-ORCA-Integration/
 ├── docs/
 │   ├── ARCHITECTURE.md             # Technical specification of the observation, action, and hybrid RL layers
 │   ├── BENCHMARKS.md               # Full experimental protocol, hardware profile, and failure analysis
-│   └── DRAC_CLUSTER_GUIDE.md       # Instructions for 10M-step RL training on the DRAC Nibi cluster
+│   ├── DRAC_CLUSTER_GUIDE.md       # Instructions for 10M-step RL training on the DRAC Nibi cluster
+│   └── REAL2SIM_SENSOR_CALIBRATION.md # Dual-camera AprilTag & 25-ray ultrasonic Real2Sim calibration
 └── pyproject.toml
 ```
 
