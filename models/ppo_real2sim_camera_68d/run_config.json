@@ -1,0 +1,14 @@
+{
+  "algo": "ppo",
+  "steps": 10000000,
+  "n_envs": 16,
+  "init": "random",
+  "action": "relative",
+  "max_delta_frac": 0.05,
+  "lock_wrist": true,
+  "real_joint_roms": true,
+  "real2sim_noise": true,
+  "append_ultrasonic_obs": false,
+  "resume": null,
+  "seed": 0
+}
