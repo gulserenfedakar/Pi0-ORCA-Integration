@@ -60,16 +60,16 @@ class UltrasonicReal2SimConfig:
     quantization_step_mm: float = 3.2
     control_hz: int = 100
     ultrasonic_hz: int = 10
-    sigma_step_mm: float = 2.20
-    sigma_episode_bias_mm: float = 6.30
+    sigma_step_mm: float = 1.60
+    sigma_episode_bias_mm: float = 2.50
     hard_incidence_limit_deg: float = 25.0
     use_stochastic_logistic_dropout: bool = True
     logistic_theta50_far_deg: float = 26.50
     logistic_theta50_near_deg: float = 18.50
-    logistic_slope_per_deg: float = 0.12
+    logistic_slope_per_deg: float = 0.38
     base_dropout_prob_in_cone: float = 0.019
-    hand_echo_survival_prob: float = 0.22
-    prob_wall_jump_on_miss: float = 0.670
+    hand_echo_survival_prob: float = 0.015
+    prob_wall_jump_on_miss: float = 0.900
     wall_jump_mode1_mm: Tuple[float, float] = (584.0, 95.0)
     wall_jump_mode2_mm: Tuple[float, float] = (1289.0, 110.0)
     prob_mode1_vs_mode2: float = 0.55
@@ -77,16 +77,19 @@ class UltrasonicReal2SimConfig:
 
 @dataclass
 class CameraAprilTagReal2SimConfig:
-    """Empirically fitted noise and occlusion-dropout parameters for dual-camera AprilTag tracking."""
+    """Empirically fitted noise and occlusion-dropout parameters from dual-camera AprilTag recordings."""
 
     control_hz: int = 100
     camera_hz: int = 30
-    pos_episode_bias_sigma_m: float = 0.006
-    pos_step_jitter_sigma_m: float = 0.0018
-    rot_step_jitter_deg: float = 2.60
-    vel_step_jitter_scale: float = 0.08
-    single_tag_ippe_flip_prob: float = 0.015
-    finger_occlusion_dropout_prob: float = 0.18
+    pos_episode_bias_sigma_m: float = 0.0045
+    pos_step_jitter_sigma_m: float = 0.0004
+    rot_episode_bias_deg: float = 2.50
+    rot_step_jitter_deg: float = 0.70
+    vel_lin_jitter_sigma_m_s: float = 0.015
+    vel_ang_jitter_sigma_rad_s: float = 0.45
+    single_tag_ippe_flip_prob: float = 0.010
+    baseline_dropout_prob: float = 0.008
+    finger_occlusion_dropout_prob: float = 0.040
 
 
 class CalibratedUltrasonicSensor:
@@ -207,6 +210,7 @@ class CalibratedAprilTagCameraWrapper:
         self.cfg = config or CameraAprilTagReal2SimConfig()
         self.rng = random.Random(None if seed is None else seed + 100_003)
         self._pos_bias = np.zeros(3, dtype=np.float64)
+        self._rot_bias_quat = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
         self._last_cube_pos = np.array([0.17, -0.01, 0.18], dtype=np.float64)
         self._last_cube_quat = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
         self._last_cube_qvel = np.zeros(6, dtype=np.float64)
@@ -214,6 +218,20 @@ class CalibratedAprilTagCameraWrapper:
         self._step_counter: int = 0
         self._occluded_streak: int = 0
         self._tag_visible: bool = True
+
+    @staticmethod
+    def _quat_mul(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
+        return np.array(
+            [
+                w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
+                w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+                w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
+                w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
+            ],
+            dtype=np.float64,
+        )
 
     @staticmethod
     def _quat_to_red_normal(quat: np.ndarray) -> np.ndarray:
@@ -240,6 +258,12 @@ class CalibratedAprilTagCameraWrapper:
             [self.rng.gauss(0.0, self.cfg.pos_episode_bias_sigma_m) for _ in range(3)],
             dtype=np.float64,
         )
+        half_bias = 0.5 * math.radians(self.cfg.rot_episode_bias_deg)
+        rb = np.array(
+            [1.0, self.rng.gauss(0.0, half_bias), self.rng.gauss(0.0, half_bias), self.rng.gauss(0.0, half_bias)],
+            dtype=np.float64,
+        )
+        self._rot_bias_quat = rb / max(1e-8, float(np.linalg.norm(rb)))
         self._step_counter = 0
         self._occluded_streak = 0
         self._tag_visible = True
@@ -267,9 +291,9 @@ class CalibratedAprilTagCameraWrapper:
                 self._occluded_streak -= 1
                 self._tag_visible = False
             else:
-                p_drop = self.cfg.finger_occlusion_dropout_prob if fingers_occluding else 0.03
+                p_drop = self.cfg.finger_occlusion_dropout_prob if fingers_occluding else self.cfg.baseline_dropout_prob
                 if self.rng.random() < p_drop:
-                    self._occluded_streak = self.rng.randint(1, 4)  # 33-130 ms occlusion burst at 30 Hz
+                    self._occluded_streak = self.rng.randint(0, 1)  # 1-2 frame burst at 30 Hz
                     self._tag_visible = False
                 else:
                     self._tag_visible = True
@@ -283,32 +307,23 @@ class CalibratedAprilTagCameraWrapper:
                 sigma_rad = math.radians(self.cfg.rot_step_jitter_deg)
                 if self.rng.random() < self.cfg.single_tag_ippe_flip_prob:
                     sigma_rad *= 3.5
-                # Perturb quaternion consistently on SO(3) tangent space
+                # Perturb quaternion consistently on SO(3) tangent space (static bias + frame jitter)
                 half_ang = 0.5 * sigma_rad
                 dq = np.array(
                     [1.0, self.rng.gauss(0.0, half_ang), self.rng.gauss(0.0, half_ang), self.rng.gauss(0.0, half_ang)],
                     dtype=np.float64,
                 )
                 dq /= max(1e-8, float(np.linalg.norm(dq)))
-                w1, x1, y1, z1 = true_quat / max(1e-8, float(np.linalg.norm(true_quat)))
-                w2, x2, y2, z2 = dq
-                noisy_quat = np.array(
-                    [
-                        w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
-                        w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                        w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
-                        w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
-                    ],
-                    dtype=np.float64,
-                )
+                q_true_norm = true_quat / max(1e-8, float(np.linalg.norm(true_quat)))
+                noisy_quat = self._quat_mul(self._quat_mul(q_true_norm, self._rot_bias_quat), dq)
                 noisy_quat /= max(1e-8, float(np.linalg.norm(noisy_quat)))
                 if np.dot(noisy_quat, true_quat) < 0:
                     noisy_quat = -noisy_quat
 
-                noisy_qvel = true_qvel + np.array(
-                    [self.rng.gauss(0.0, self.cfg.vel_step_jitter_scale) for _ in range(6)],
-                    dtype=np.float64,
-                )
+                v_noise = [self.rng.gauss(0.0, self.cfg.vel_lin_jitter_sigma_m_s) for _ in range(3)] + [
+                    self.rng.gauss(0.0, self.cfg.vel_ang_jitter_sigma_rad_s) for _ in range(3)
+                ]
+                noisy_qvel = true_qvel + np.array(v_noise, dtype=np.float64)
                 self._last_cube_pos = noisy_pos
                 self._last_cube_quat = noisy_quat
                 self._last_cube_qvel = noisy_qvel
@@ -408,19 +423,20 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
                         cur._span = np.maximum(cur._high - cur._low, 1e-6)
                     cur = getattr(cur, "env", None)
 
-        # Precompute 9-ray 15-deg acoustic cone directions in world frame for `mj_ray`
+        # Precompute 25-ray 15-deg acoustic cone directions (1 axis + 3 rings x 8 rays) in world frame for `mj_ray`
         z_ax = self.US_DIR_WORLD / np.linalg.norm(self.US_DIR_WORLD)
         x_ax = np.cross(np.array([0.0, 0.0, 1.0]), z_ax)
         x_ax /= max(1e-8, float(np.linalg.norm(x_ax)))
         y_ax = np.cross(z_ax, x_ax)
         rays = [z_ax]
-        for ring_deg in (7.5, 15.0):
+        for ring_deg in (5.0, 10.0, 15.0):
             th = math.radians(ring_deg)
-            for az_i in range(4):
-                ph = az_i * (0.5 * math.pi)
+            for az_i in range(8):
+                ph = az_i * (0.25 * math.pi)
                 d_vec = math.cos(th) * z_ax + math.sin(th) * (math.cos(ph) * x_ax + math.sin(ph) * y_ax)
                 rays.append(d_vec / np.linalg.norm(d_vec))
         self._cone_rays = np.asarray(rays, dtype=np.float64)
+        self._ray_geomgroup = np.array([1, 1, 1, 0, 0, 0], dtype=np.uint8)
 
         if self.append_ultrasonic_obs:
             old_space = self.env.observation_space
@@ -429,36 +445,15 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
             self.observation_space = spaces.Box(low=low, high=high, dtype=np.float64)
 
     def _cast_ultrasonic_cone(self) -> Tuple[Optional[float], Optional[float], str]:
-        """Cast the 15-deg ultrasonic cone using `mujoco.mj_ray` to detect both cube and finger/thumb hits."""
+        """Cast the 25-ray 15-deg ultrasonic cone with per-ray specular filtering before nearest-echo selection."""
         base_env = self.env.unwrapped
         if not hasattr(base_env, "model") or not hasattr(base_env, "data"):
             return None, None, "none"
 
         m, d = base_env.model, base_env.data
         cube_body_id = getattr(base_env, "_cube_body_id", -1)
-        best_dist_m: Optional[float] = None
-        best_body: str = "none"
-
-        for ray_dir in self._cone_rays:
-            geomid = np.array([-1], dtype=np.int32)
-            dist_m = float(mujoco.mj_ray(m, d, self.US_POS_WORLD_M, ray_dir, None, 1, -1, geomid))
-            if dist_m > 0.0 and geomid[0] >= 0:
-                if best_dist_m is None or dist_m < best_dist_m:
-                    best_dist_m = dist_m
-                    hit_bid = int(m.geom_bodyid[geomid[0]])
-                    if hit_bid == cube_body_id:
-                        best_body = "cube"
-                    elif hit_bid == 0:
-                        best_body = "bench"
-                    else:
-                        best_body = "hand"
-
-        if best_dist_m is None:
-            return None, None, "none"
-
-        dist_mm = best_dist_m * 1000.0 + 2.9
-        inc_deg: Optional[float] = 0.0
-        if best_body == "cube" and hasattr(base_env, "_cube_quat"):
+        R_cube: Optional[np.ndarray] = None
+        if hasattr(base_env, "_cube_quat"):
             q = base_env._cube_quat()
             w, x, y, z = q / max(1e-8, float(np.linalg.norm(q)))
             R_cube = np.array(
@@ -469,10 +464,45 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
                 ],
                 dtype=np.float64,
             )
-            z_ax = self.US_DIR_WORLD / np.linalg.norm(self.US_DIR_WORLD)
-            max_cos = max(abs(float(np.dot(R_cube[:, axis], z_ax))) for axis in range(3))
-            inc_deg = math.degrees(math.acos(min(1.0, max_cos)))
-        return dist_mm, inc_deg, best_body
+
+        best_dist_m: Optional[float] = None
+        best_inc_deg: Optional[float] = None
+        best_body: str = "none"
+        spec_limit_deg = self.us_sensor.cfg.hard_incidence_limit_deg
+
+        for ray_dir in self._cone_rays:
+            geomid = np.array([-1], dtype=np.int32)
+            dist_m = float(mujoco.mj_ray(m, d, self.US_POS_WORLD_M, ray_dir, self._ray_geomgroup, 1, -1, geomid))
+            if dist_m <= 0.0 or geomid[0] < 0:
+                continue
+
+            hit_bid = int(m.geom_bodyid[geomid[0]])
+            if hit_bid == cube_body_id:
+                hit_body = "cube"
+                if R_cube is not None:
+                    max_cos = max(abs(float(np.dot(R_cube[:, axis], ray_dir))) for axis in range(3))
+                    inc_deg = math.degrees(math.acos(min(1.0, max_cos)))
+                else:
+                    inc_deg = 0.0
+                if inc_deg > spec_limit_deg:
+                    continue
+            elif hit_bid == 0:
+                hit_body = "bench"
+                inc_deg = 0.0
+            else:
+                hit_body = "hand"
+                inc_deg = 0.0
+
+            if best_dist_m is None or dist_m < best_dist_m:
+                best_dist_m = dist_m
+                best_inc_deg = inc_deg
+                best_body = hit_body
+
+        if best_dist_m is None:
+            return None, None, "none"
+
+        dist_mm = best_dist_m * 1000.0 + 2.9
+        return dist_mm, best_inc_deg, best_body
 
     def _process_obs(self, obs: np.ndarray, info: dict[str, Any]) -> np.ndarray:
         obs = obs.copy()
@@ -490,7 +520,7 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
             #   obs[24:41] = 17 hand joint qvel, obs[41:47] = cube_qvel (6D)
             #   obs[47:50] = red_face_world_normal (3D), obs[50] = red_face_up_alignment (1D)
             mean_finger_flex = float(np.mean(np.abs(obs[0:16])))
-            fingers_occluding = mean_finger_flex > 0.45
+            fingers_occluding = mean_finger_flex > 0.35
             noisy_pos, noisy_quat, noisy_qvel, noisy_n, noisy_align, tag_vis = self.cam_sensor.perturb_full_cube_state(
                 obs[17:20],
                 obs[20:24],

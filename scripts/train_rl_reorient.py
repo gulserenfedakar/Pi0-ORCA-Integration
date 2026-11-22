@@ -162,6 +162,9 @@ def build_model(
         if resume_path is not None:
             old_model = PPO.load(str(resume_path), device=device)
             _extend_linear_input_weights(fresh.policy, old_model.policy.state_dict())
+            if hasattr(fresh.policy, "log_std") and isinstance(fresh.policy.log_std, torch.nn.Parameter):
+                with torch.no_grad():
+                    fresh.policy.log_std.clamp_(min=math.log(0.50))
             print(f"Warm-started PPO policy weights from {resume_path}")
         return fresh
 
@@ -242,20 +245,22 @@ def _load_or_extend_vecnormalize(train_env, resume_path: Path | None) -> VecNorm
     if not cand_norm.exists():
         return venv
     try:
-        dummy = DummyVecEnv([lambda: gym.Env()])
-        old_vn = VecNormalize.load(str(cand_norm), dummy)
+        import pickle
+
+        with open(cand_norm, "rb") as fh:
+            old_vn = pickle.load(fh)
         old_mean = old_vn.obs_rms.mean
         old_var = old_vn.obs_rms.var
         new_dim = venv.obs_rms.mean.shape[0]
         if old_mean.shape[0] == new_dim:
             venv.obs_rms.mean[:] = old_mean
             venv.obs_rms.var[:] = old_var
-            venv.obs_rms.count = old_vn.obs_rms.count
+            venv.obs_rms.count = min(float(old_vn.obs_rms.count), 50_000.0)
             print(f"Loaded matching {new_dim}D VecNormalize statistics from {cand_norm}")
         elif old_mean.shape[0] < new_dim:
             venv.obs_rms.mean[: old_mean.shape[0]] = old_mean
             venv.obs_rms.var[: old_var.shape[0]] = old_var
-            venv.obs_rms.count = old_vn.obs_rms.count
+            venv.obs_rms.count = min(float(old_vn.obs_rms.count), 50_000.0)
             print(f"Extended VecNormalize statistics ({old_mean.shape[0]}D -> {new_dim}D) from {cand_norm}")
     except Exception as exc:
         print(f"Warning: could not copy VecNormalize stats from {cand_norm}: {exc}")

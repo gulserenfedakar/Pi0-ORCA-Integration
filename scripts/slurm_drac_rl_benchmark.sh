@@ -21,7 +21,7 @@ MODES=("real2sim_camera_ultrasonic_70d" "real2sim_camera_ultrasonic_70d" "real2s
 
 ALGO="${ALGOS[$SLURM_ARRAY_TASK_ID]}"
 MODE="${MODES[$SLURM_ARRAY_TASK_ID]}"
-STEPS="${STEPS:-5000000}"
+STEPS="${STEPS:-10000000}"
 N_ENVS="${SLURM_CPUS_PER_TASK:-16}"
 INIT_MODE="${INIT_MODE:-random}"
 SEED="${SEED:-0}"
@@ -50,9 +50,13 @@ if [[ "${MODE}" == *_70d ]]; then
     EXTRA_FLAGS+=(--append-ultrasonic-obs)
 fi
 
-RESUME_CKPT="models/drac_${ALGO}_10M/best_model.zip"
-if [[ "${MODE}" == real2sim_* ]] && [ -f "${RESUME_CKPT}" ]; then
-    EXTRA_FLAGS+=(--resume "${RESUME_CKPT}")
+# Only warm-start from unlocked-wrist 10M checkpoints if USE_RESUME=1 is explicitly set.
+# By default, all 4 ablation tasks train from scratch under matched kinematic/sensor conditions.
+if [[ "${USE_RESUME:-0}" == "1" ]]; then
+    RESUME_CKPT="models/drac_${ALGO}_10M/best_model.zip"
+    if [[ "${MODE}" == real2sim_* ]] && [ -f "${RESUME_CKPT}" ]; then
+        EXTRA_FLAGS+=(--resume "${RESUME_CKPT}")
+    fi
 fi
 
 echo "Starting RL job: algo=${ALGO}, mode=${MODE}, steps=${STEPS}, n_envs=${N_ENVS}, seed=${SEED}"

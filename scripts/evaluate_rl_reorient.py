@@ -16,8 +16,11 @@ import time
 from pathlib import Path
 
 import numpy as np
+import torch
 from stable_baselines3 import PPO, SAC, TD3
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+torch.set_num_threads(1)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -63,9 +66,9 @@ def make_eval_env(
             env = Real2SimSensorAndKinematicWrapper(
                 env,
                 lock_wrist=lock_wrist,
-                apply_real_joint_roms=real_joint_roms,
-                enable_camera_noise=real2sim_noise,
-                enable_ultrasonic_obs=append_ultrasonic_obs,
+                real_joint_roms=real_joint_roms,
+                real2sim_noise=real2sim_noise,
+                append_ultrasonic_obs=append_ultrasonic_obs,
                 seed=seed,
             )
         return env
