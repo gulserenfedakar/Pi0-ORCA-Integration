@@ -11,7 +11,7 @@ Pretrained Vision-Language-Action (VLA) foundation models such as Physical Intel
 1. **Embodiment and Action-Space Mismatch:** Mapping a 1D gripper command or raw 7D Cartesian delta directly to 17 coupled finger and thumb actuators produces uncoordinated joint excursions, finger chattering, and immediate object ejection.
 2. **Contact-Rich In-Hand Manipulation Dynamics:** Tasks such as in-hand cube reorientation require continuous multi-finger gaiting and velocity damping at 100 Hz ($\Delta t = 0.01\text{ s}$), whereas 3B-parameter VLA inference operates at approximately 3.3–3.6 Hz on consumer GPU hardware.
 
-This repository implements the observation pipeline, 17-DoF in-hand synergy adapters, relative joint-target wrappers, and $\pi_0$-integrated + RL (`PPO`, `SAC`, `TD3`) control architecture on the **17-DoF In-Hand Cube Reorientation (`OrcaHandRightCubeOrientation` / `scene_right_cube_orientation.xml`)** benchmark environment:
+This repository implements the observation pipeline, 17-DoF in-hand synergy adapters, relative joint-target wrappers, Real2Sim dual-camera + ultrasonic calibration wrappers, and $\pi_0$-integrated + RL (`PPO`, `SAC`, `TD3`) control architecture on the **17-DoF In-Hand Cube Reorientation (`OrcaHandRightCubeOrientation` / `scene_right_cube_orientation.xml`)** benchmark environment:
 
 * **Task Objective:** Using only the 17-DoF ORCA right hand, manipulate a cube inside the palm from a non-solved initial orientation (`down` at $180^\circ$ or `random` across $90^\circ / 180^\circ$ orientations) to align its red face within $15^\circ$ of world-up and hold it stationary ($\|\omega\| \le 1.0\text{ rad/s}$, $\|v\| \le 0.1\text{ m/s}$) for 25 consecutive control steps ($0.25\text{ s}$ at $100\text{ Hz}$) without dropping it.
 
@@ -53,6 +53,7 @@ Pi0-ORCA-Integration/
 ├── tests/
 │   ├── test_action_adapter.py      # Unit tests for 17-DoF ORCA hand bounds and in-hand synergy deltas
 │   ├── test_observations.py        # Unit tests for offscreen rendering and pi0 observation formatting
+│   ├── test_real2sim_sensors.py    # Unit tests for ultrasonic dead-zone, 30 Hz camera hold, and Slurm LF
 │   └── test_hybrid_reorient.py     # Closed-loop integration test for 17-DoF cube reorientation and 25-step hold
 ├── docs/
 │   ├── ARCHITECTURE.md             # Technical specification of the observation, action, and hybrid RL layers
@@ -163,11 +164,22 @@ Task criterion: rotate the cube from a non-solved initial orientation (`down` at
 | **SAC** (`drac_sac_10M`) | `relative` | 200 | 0.257 | 72.5% | **90.0% / 90.0%** | 16.6 | **64.5% / 69.5%** | **0.0%** | 20.58° *(6.89°)* | 24.58° *(8.84°)* |
 | **TD3** (`drac_td3_10M`) | `relative` | 200 | **0.184** | 38.5% | 70.0% / 70.0% | 8.4 | 33.5% / 33.5% | 4.5% | 47.19° *(5.84°)* | 55.78° *(12.29°)* |
 
+### Hardware-Aligned & Calibrated Real2Sim Ablation (DRAC `Nibi` — 200 Fixed Seeds `20000–20199`)
+
+Locking the wrist (`right_wrist = 0.0 rad`) to stabilize the palm-mounted ultrasonic sensor and enforcing physical thumb/finger joint ROM limits (`t-mcp` $\in [-5^\circ, +40^\circ]$) yields **`92.5%` held success (`96.0%` goal alignment, `3.5%` drop)** under ideal sensing. Adding empirically calibrated 30 Hz dual-camera AprilTag noise (`0.4 mm` / `0.7°` jitter, `4.5 mm` / `2.5°` bias, occlusion bursts) and 10 Hz 25-ray conical ultrasonic sensing quantifies the Sim-to-Real sensor gap (`62.0%–65.0%` held/latched for 68D camera-only PPO; `55.5%` held with `11.54°` aligned hold precision for 70D camera + ultrasonic PPO):
+
+| Configuration | Steps | Obs Dim | Wrist Locked + Real ROMs | Real2Sim Sensor Noise | Policy Latency (ms) | Goal Align ($<15^\circ$) | Held / Latched Success (%) | Cube Drop Rate (%) | Final Angle (All / Aligned) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **PPO Ideal Locked-Wrist** | 5M | 68D | ✅ | ❌ | 0.301 | **96.0%** | **92.5% / 92.5%** | **3.5%** | **14.76°** *(14.21°)* |
+| **PPO Real2Sim Dual-Camera** | 10M | 68D | ✅ | ✅ (30 Hz Cam) | 0.299 | **83.5%** | **62.0% / 65.0%** | 9.0% | 31.72° *(20.23°)* |
+| **PPO Real2Sim Cam + 25-Ray Ultrasonic** | 10M | 70D | ✅ | ✅ (Cam + US) | 0.299 | 63.0% | **55.5% / 55.5%** | 9.0% | 32.26° *(**11.54°**)* |
+
 ---
 
 ## Documentation
 
 * [Comprehensive Benchmark & Cluster Report (`docs/FINAL_BENCHMARK_AND_CLUSTER_REPORT.md`)](docs/FINAL_BENCHMARK_AND_CLUSTER_REPORT.md)
+* [Real2Sim Sensor Calibration & Hardware-Aligned RL (`docs/REAL2SIM_SENSOR_CALIBRATION.md`)](docs/REAL2SIM_SENSOR_CALIBRATION.md)
 * [System Architecture & Control Design (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md)
 * [Benchmark Protocol & Failure Analysis (`docs/BENCHMARKS.md`)](docs/BENCHMARKS.md)
 * [DRAC Nibi Cluster RL Training Guide (`docs/DRAC_CLUSTER_GUIDE.md`)](docs/DRAC_CLUSTER_GUIDE.md)
