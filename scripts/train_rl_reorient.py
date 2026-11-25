@@ -56,15 +56,31 @@ for cand_sim in [
         break
 
 
+def _resolve_scene_and_drop_height(scene_mode: str) -> tuple[str, float]:
+    """Select `scene_right_cube_orientation_real2sim.xml` (drop_height=0.13) when available."""
+    if scene_mode == "plain":
+        return "scene_right_cube_orientation.xml", 0.05
+    for p in sys.path:
+        cand = Path(p) / "orca_sim" / "scenes" / "v2" / "scene_right_cube_orientation_real2sim.xml"
+        if cand.exists():
+            return "scene_right_cube_orientation_real2sim.xml", 0.13
+    if scene_mode == "real2sim":
+        return "scene_right_cube_orientation_real2sim.xml", 0.13
+    return "scene_right_cube_orientation.xml", 0.05
+
+
 def make_env(
     init: str,
     seed: int,
     action: str = "relative",
     max_delta_frac: float = 0.05,
+    scene_mode: str = "auto",
     lock_wrist: bool = False,
+    wrist_lock_deg: float = 9.6,
     real_joint_roms: bool = False,
     real2sim_noise: bool = False,
     append_ultrasonic_obs: bool = False,
+    render_camera_images: bool = False,
 ):
     def _thunk():
         from orca_sim import OrcaHandRightCubeOrientation
@@ -74,19 +90,27 @@ def make_env(
             apply_physical_joint_roms_to_base_env,
         )
 
-        env = OrcaHandRightCubeOrientation(version="v2", initial_red_face=init)
+        scene_file, drop_h = _resolve_scene_and_drop_height(scene_mode)
+        env = OrcaHandRightCubeOrientation(
+            version="v2",
+            scene_file=scene_file,
+            initial_red_face=init,
+            drop_height=drop_h,
+        )
         # Apply physical joint ROM limits BEFORE RelativeJointTargetAction caches _low/_high/_span
         if real_joint_roms:
             apply_physical_joint_roms_to_base_env(env)
         if action == "relative":
             env = RelativeJointTargetAction(env, max_delta_frac=max_delta_frac)
-        if lock_wrist or real_joint_roms or real2sim_noise or append_ultrasonic_obs:
+        if lock_wrist or real_joint_roms or real2sim_noise or append_ultrasonic_obs or render_camera_images:
             env = Real2SimSensorAndKinematicWrapper(
                 env,
                 lock_wrist=lock_wrist,
+                wrist_lock_deg=wrist_lock_deg,
                 real_joint_roms=real_joint_roms,
                 real2sim_noise=real2sim_noise,
                 append_ultrasonic_obs=append_ultrasonic_obs,
+                render_camera_images=render_camera_images,
                 seed=seed,
             )
         info_keys = ("is_success", "goal_reached", "success_streak", "dropped")
@@ -281,16 +305,20 @@ def main() -> None:
     parser.add_argument("--checkpoint-every", type=int, default=500_000)
     parser.add_argument("--action", choices=["relative", "absolute"], default="relative")
     parser.add_argument("--max-delta-frac", type=float, default=0.05)
+    parser.add_argument("--scene", choices=["auto", "real2sim", "plain"], default="auto", help="Use Joe's real2sim bench scene (top/side cameras + 25 ultrasonic rangefinders)")
     parser.add_argument("--lock-wrist", action="store_true", help="Freeze 1-DoF wrist pitch actuator during training")
+    parser.add_argument("--wrist-lock-deg", type=float, default=-9.6, help="Locked wrist pitch angle in degrees (default: -9.6 deg matching physical hand neutral in policy_run07/08.yaml)")
     parser.add_argument("--real-joint-roms", action="store_true", help="Enforce physical hand thumb_mcp [-5, +40] deg bounds")
-    parser.add_argument("--real2sim-noise", action="store_true", help="Enable calibrated dual-camera AprilTag & ultrasonic Real2Sim noise")
+    parser.add_argument("--real2sim-noise", action="store_true", help="Enable calibrated dual-camera (top+side) AprilTag & ultrasonic Real2Sim noise")
     parser.add_argument("--append-ultrasonic-obs", action="store_true", help="Append 2D [us_d_norm, us_valid] to observation space (68D -> 70D)")
+    parser.add_argument("--render-camera-images", action="store_true", help="Render top and side MuJoCo camera images into info dict")
     parser.add_argument("--resume", type=Path, default=None, help="Path to existing model .zip checkpoint for warm-start fine-tuning")
     parser.add_argument("--device", default="cpu", choices=["cpu", "cuda", "auto"])
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
 
+    scene_file, drop_h = _resolve_scene_and_drop_height(args.scene)
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     suffix = "_real2sim" if (args.real2sim_noise or args.lock_wrist) else ""
     out = args.out or (REPO_ROOT / "runs" / f"{args.algo}_reorient_{args.init}{suffix}_{timestamp}")
@@ -304,10 +332,14 @@ def main() -> None:
                 "init": args.init,
                 "action": args.action,
                 "max_delta_frac": args.max_delta_frac,
+                "scene_file": scene_file,
+                "drop_height": drop_h,
                 "lock_wrist": args.lock_wrist,
+                "wrist_lock_deg": args.wrist_lock_deg if args.lock_wrist else 0.0,
                 "real_joint_roms": args.real_joint_roms,
                 "real2sim_noise": args.real2sim_noise,
                 "append_ultrasonic_obs": args.append_ultrasonic_obs,
+                "render_camera_images": args.render_camera_images,
                 "resume": str(args.resume) if args.resume else None,
                 "seed": args.seed,
             },
@@ -318,10 +350,13 @@ def main() -> None:
     env_kwargs = dict(
         action=args.action,
         max_delta_frac=args.max_delta_frac,
+        scene_mode=args.scene,
         lock_wrist=args.lock_wrist,
+        wrist_lock_deg=args.wrist_lock_deg,
         real_joint_roms=args.real_joint_roms,
         real2sim_noise=args.real2sim_noise,
         append_ultrasonic_obs=args.append_ultrasonic_obs,
+        render_camera_images=args.render_camera_images,
     )
     if args.n_envs > 1:
         start_method = "forkserver" if os.name != "nt" else "spawn"

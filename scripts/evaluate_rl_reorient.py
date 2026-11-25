@@ -50,25 +50,36 @@ def make_eval_env(
     init: str,
     action: str = "relative",
     max_delta_frac: float = 0.05,
+    scene_file: str = "scene_right_cube_orientation.xml",
+    drop_height: float = 0.05,
     lock_wrist: bool = False,
+    wrist_lock_deg: float = 0.0,
     real_joint_roms: bool = False,
     real2sim_noise: bool = False,
     append_ultrasonic_obs: bool = False,
+    render_camera_images: bool = False,
     seed: int = 20_000,
 ):
     def _thunk():
-        env = OrcaHandRightCubeOrientation(version="v2", initial_red_face=init)
+        env = OrcaHandRightCubeOrientation(
+            version="v2",
+            scene_file=scene_file,
+            initial_red_face=init,
+            drop_height=drop_height,
+        )
         if real_joint_roms:
             apply_physical_joint_roms_to_base_env(env)
         if action == "relative":
             env = RelativeJointTargetAction(env, max_delta_frac=max_delta_frac)
-        if lock_wrist or real_joint_roms or real2sim_noise or append_ultrasonic_obs:
+        if lock_wrist or real_joint_roms or real2sim_noise or append_ultrasonic_obs or render_camera_images:
             env = Real2SimSensorAndKinematicWrapper(
                 env,
                 lock_wrist=lock_wrist,
+                wrist_lock_deg=wrist_lock_deg,
                 real_joint_roms=real_joint_roms,
                 real2sim_noise=real2sim_noise,
                 append_ultrasonic_obs=append_ultrasonic_obs,
+                render_camera_images=render_camera_images,
                 seed=seed,
             )
         return env
@@ -80,9 +91,12 @@ def evaluate_run_dir(
     run_dir: Path,
     n_episodes: int = 200,
     override_lock_wrist: bool | None = None,
+    override_wrist_lock_deg: float | None = None,
     override_real_joint_roms: bool | None = None,
     override_real2sim_noise: bool | None = None,
     override_append_ultrasonic_obs: bool | None = None,
+    render_camera_images: bool = False,
+    run_label_suffix: str = "",
 ) -> dict | None:
     cfg_path = run_dir / "run_config.json"
     if cfg_path.exists():
@@ -91,7 +105,10 @@ def evaluate_run_dir(
         init_mode = cfg.get("init", "random")
         action_mode = cfg.get("action", "relative")
         max_delta_frac = float(cfg.get("max_delta_frac", 0.05))
+        scene_file = str(cfg.get("scene_file", "scene_right_cube_orientation.xml"))
+        drop_height = float(cfg.get("drop_height", 0.13 if "real2sim" in scene_file else 0.05))
         lock_wrist = bool(cfg.get("lock_wrist", False))
+        wrist_lock_deg = float(cfg.get("wrist_lock_deg", 0.0))
         real_joint_roms = bool(cfg.get("real_joint_roms", False))
         real2sim_noise = bool(cfg.get("real2sim_noise", False))
         append_ultrasonic_obs = bool(cfg.get("append_ultrasonic_obs", False))
@@ -101,13 +118,18 @@ def evaluate_run_dir(
         init_mode = "random"
         action_mode = "relative"
         max_delta_frac = 0.05
+        scene_file = "scene_right_cube_orientation.xml"
+        drop_height = 0.05
         lock_wrist = "real2sim" in name_lower or "locked" in name_lower
+        wrist_lock_deg = 0.0
         real_joint_roms = "real2sim" in name_lower or "locked" in name_lower
         real2sim_noise = "real2sim" in name_lower
         append_ultrasonic_obs = "70d" in name_lower
 
     if override_lock_wrist is not None:
         lock_wrist = override_lock_wrist
+    if override_wrist_lock_deg is not None:
+        wrist_lock_deg = override_wrist_lock_deg
     if override_real_joint_roms is not None:
         real_joint_roms = override_real_joint_roms
     if override_real2sim_noise is not None:
@@ -137,10 +159,14 @@ def evaluate_run_dir(
                 init_mode,
                 action_mode,
                 max_delta_frac,
+                scene_file=scene_file,
+                drop_height=drop_height,
                 lock_wrist=lock_wrist,
+                wrist_lock_deg=wrist_lock_deg,
                 real_joint_roms=real_joint_roms,
                 real2sim_noise=real2sim_noise,
                 append_ultrasonic_obs=append_ultrasonic_obs,
+                render_camera_images=render_camera_images,
             )
         ]
     )
@@ -222,11 +248,12 @@ def evaluate_run_dir(
 
     venv.close()
     return {
-        "Run": run_dir.name,
+        "Run": run_dir.name + run_label_suffix,
         "Algorithm": algo_name.upper(),
         "Init": init_mode,
         "Action_Mode": action_mode,
         "Lock_Wrist": lock_wrist,
+        "Wrist_Lock_Deg": wrist_lock_deg if lock_wrist else 0.0,
         "Real2Sim_Noise": real2sim_noise,
         "Obs_Dim": 70 if append_ultrasonic_obs else 68,
         "Episodes": n_episodes,
@@ -249,9 +276,12 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=200)
     parser.add_argument("--out-csv", type=Path, default=REPO_ROOT / "results" / "rl_reorient_benchmark.csv")
     parser.add_argument("--lock-wrist", action="store_true", default=None)
+    parser.add_argument("--wrist-lock-deg", type=float, default=None)
     parser.add_argument("--real-joint-roms", action="store_true", default=None)
     parser.add_argument("--real2sim-noise", action="store_true", default=None)
     parser.add_argument("--append-ultrasonic-obs", action="store_true", default=None)
+    parser.add_argument("--render-camera-images", action="store_true", default=False)
+    parser.add_argument("--cross-eval", action="store_true", default=True, help="Also cross-evaluate ideal locked-wrist policies under calibrated camera noise")
     args = parser.parse_args()
 
     if not args.runs_dir.exists():
@@ -265,18 +295,41 @@ def main() -> None:
                 sub,
                 n_episodes=args.episodes,
                 override_lock_wrist=args.lock_wrist,
+                override_wrist_lock_deg=args.wrist_lock_deg,
                 override_real_joint_roms=args.real_joint_roms,
                 override_real2sim_noise=args.real2sim_noise,
                 override_append_ultrasonic_obs=args.append_ultrasonic_obs,
+                render_camera_images=args.render_camera_images,
             )
             if res is not None:
                 rows.append(res)
                 print(
-                    f"[{res['Algorithm']}] {res['Run']} (Obs={res['Obs_Dim']}D, Real2Sim={res['Real2Sim_Noise']}): "
+                    f"[{res['Algorithm']}] {res['Run']} (Obs={res['Obs_Dim']}D, Wrist={res['Wrist_Lock_Deg']}deg, Real2Sim={res['Real2Sim_Noise']}): "
                     f"Success={res['Held_Success_Rate_pct']}% | Latched={res['Latched_Success_Rate_pct']}% | "
                     f"Align={res['Goal_Align_Rate_pct']}% | HoldStreak={res['Mean_Hold_Streak_steps']}/25 | "
                     f"Drop={res['Cube_Drop_Rate_pct']}% | FinalAng={res['Final_Angle_Error_deg']}deg"
                 )
+                # Joe's requested cross-eval: ideal locked-wrist policy evaluated under calibrated camera noise (Group B)
+                if args.cross_eval and res["Lock_Wrist"] and not res["Real2Sim_Noise"] and res["Obs_Dim"] == 68:
+                    cross = evaluate_run_dir(
+                        sub,
+                        n_episodes=args.episodes,
+                        override_lock_wrist=True,
+                        override_wrist_lock_deg=args.wrist_lock_deg,
+                        override_real_joint_roms=True,
+                        override_real2sim_noise=True,
+                        override_append_ultrasonic_obs=False,
+                        render_camera_images=args.render_camera_images,
+                        run_label_suffix="_cross_eval_under_camera_noise",
+                    )
+                    if cross is not None:
+                        rows.append(cross)
+                        print(
+                            f"[{cross['Algorithm']} CROSS-EVAL] {cross['Run']} (Real2Sim=True): "
+                            f"Success={cross['Held_Success_Rate_pct']}% | Latched={cross['Latched_Success_Rate_pct']}% | "
+                            f"Align={cross['Goal_Align_Rate_pct']}% | HoldStreak={cross['Mean_Hold_Streak_steps']}/25 | "
+                            f"Drop={cross['Cube_Drop_Rate_pct']}% | FinalAng={cross['Final_Angle_Error_deg']}deg"
+                        )
 
     if rows:
         args.out_csv.parent.mkdir(parents=True, exist_ok=True)
