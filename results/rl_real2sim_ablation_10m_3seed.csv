@@ -1,0 +1,13 @@
+Run,Algorithm,Init,Action_Mode,Lock_Wrist,Wrist_Lock_Deg,Real2Sim_Noise,Obs_Dim,Episodes,Policy_Latency_ms,Goal_Align_Rate_pct,Mean_Hold_Streak_steps,Held_Success_Rate_pct,Latched_Success_Rate_pct,Cube_Drop_Rate_pct,Min_Angle_Error_deg,Aligned_Min_Angle_deg,Final_Angle_Error_deg,Aligned_Final_Angle_deg
+ppo_ideal_locked_wrist_68d_10000000_seed0,PPO,random,relative,True,0.0,False,68,200,0.297,75.0,15.4,51.5,59.0,0.0,19.66,7.5,24.2,12.19
+ppo_ideal_locked_wrist_68d_10000000_seed0_cross_eval_under_camera_noise,PPO,random,relative,True,0.0,True,68,200,0.298,54.5,10.3,35.0,39.0,13.5,26.68,7.85,44.02,23.48
+ppo_ideal_locked_wrist_68d_10000000_seed1,PPO,random,relative,True,0.0,False,68,200,0.304,8.5,0.0,0.0,0.0,5.0,61.31,8.3,71.45,89.7
+ppo_ideal_locked_wrist_68d_10000000_seed1_cross_eval_under_camera_noise,PPO,random,relative,True,0.0,True,68,200,0.304,4.5,0.0,0.0,0.0,13.0,65.6,6.22,79.23,122.73
+ppo_ideal_locked_wrist_68d_10000000_seed2,PPO,random,relative,True,0.0,False,68,200,0.313,84.0,21.0,84.0,84.0,0.0,15.63,6.81,16.99,8.21
+ppo_ideal_locked_wrist_68d_10000000_seed2_cross_eval_under_camera_noise,PPO,random,relative,True,0.0,True,68,200,0.299,78.0,15.9,52.5,67.0,1.5,18.21,6.1,24.76,12.08
+ppo_real2sim_camera_68d_10000000_seed0,PPO,random,relative,True,0.0,True,68,200,0.298,84.5,20.2,74.5,74.0,2.0,14.31,6.76,17.18,9.05
+ppo_real2sim_camera_68d_10000000_seed1,PPO,random,relative,True,0.0,True,68,200,0.302,13.0,0.0,0.0,0.0,24.0,59.27,9.92,83.44,101.97
+ppo_real2sim_camera_68d_10000000_seed2,PPO,random,relative,True,0.0,True,68,200,0.31,84.5,20.0,77.0,76.5,2.0,16.6,7.89,21.24,11.68
+ppo_real2sim_camera_ultrasonic_70d_10000000_seed0,PPO,random,relative,True,0.0,True,70,200,0.312,66.0,15.9,60.5,62.5,0.0,20.0,7.73,22.06,10.13
+ppo_real2sim_camera_ultrasonic_70d_10000000_seed1,PPO,random,relative,True,0.0,True,70,200,0.307,57.0,13.4,51.0,50.5,0.0,28.53,5.29,31.16,8.76
+ppo_real2sim_camera_ultrasonic_70d_10000000_seed2,PPO,random,relative,True,0.0,True,70,200,0.311,12.5,1.4,3.0,5.5,2.0,84.66,7.54,90.87,33.33
