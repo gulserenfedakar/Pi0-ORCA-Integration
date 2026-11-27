@@ -97,6 +97,7 @@ def make_env(
     lock_wrist: bool = False,
     wrist_lock_deg: float = 0.0,
     real_joint_roms: bool = False,
+    apply_joint_map_offsets: bool = False,
     real2sim_noise: bool = False,
     append_ultrasonic_obs: bool = False,
     render_camera_images: bool = False,
@@ -118,7 +119,7 @@ def make_env(
         )
         # Apply physical joint ROM limits BEFORE RelativeJointTargetAction caches _low/_high/_span
         if real_joint_roms:
-            apply_physical_joint_roms_to_base_env(env)
+            apply_physical_joint_roms_to_base_env(env, apply_joint_map_offsets=apply_joint_map_offsets)
         if action == "relative":
             env = RelativeJointTargetAction(env, max_delta_frac=max_delta_frac)
         if lock_wrist or real_joint_roms or real2sim_noise or append_ultrasonic_obs or render_camera_images:
@@ -127,6 +128,7 @@ def make_env(
                 lock_wrist=lock_wrist,
                 wrist_lock_deg=wrist_lock_deg,
                 real_joint_roms=real_joint_roms,
+                apply_joint_map_offsets=apply_joint_map_offsets,
                 real2sim_noise=real2sim_noise,
                 append_ultrasonic_obs=append_ultrasonic_obs,
                 render_camera_images=render_camera_images,
@@ -328,7 +330,8 @@ def main() -> None:
     parser.add_argument("--scene", choices=["auto", "real2sim", "plain"], default="auto", help="Use Joe's real2sim bench scene (top/side cameras + 25 ultrasonic rangefinders)")
     parser.add_argument("--lock-wrist", action="store_true", help="Freeze 1-DoF wrist pitch actuator during training")
     parser.add_argument("--wrist-lock-deg", type=float, default=0.0, help="Locked wrist actuator command in degrees (default: 0.0 deg, dynamically sagging to ~-9.9 deg under kp=2.0 gravity to match physical -9.6 deg)")
-    parser.add_argument("--real-joint-roms", action="store_true", help="Enforce physical hand thumb_mcp [-5, +40] deg bounds")
+    parser.add_argument("--real-joint-roms", action="store_true", help="Enforce physical hand ROM bounds (t-mcp, t-abd, p-abd)")
+    parser.add_argument("--apply-joint-map-offsets", action="store_true", help="Also shift r-abd/p-abd training bounds by joint_map.py replay offsets (default: False, replay-only)")
     parser.add_argument("--real2sim-noise", action="store_true", help="Enable calibrated dual-camera (top+side) AprilTag & ultrasonic Real2Sim noise")
     parser.add_argument("--append-ultrasonic-obs", action="store_true", help="Append 2D [us_d_norm, us_valid] to observation space (68D -> 70D)")
     parser.add_argument("--render-camera-images", action="store_true", help="Render top and side MuJoCo camera images into info dict")
@@ -357,6 +360,7 @@ def main() -> None:
                 "lock_wrist": args.lock_wrist,
                 "wrist_lock_deg": args.wrist_lock_deg if args.lock_wrist else 0.0,
                 "real_joint_roms": args.real_joint_roms,
+                "apply_joint_map_offsets": args.apply_joint_map_offsets,
                 "real2sim_noise": args.real2sim_noise,
                 "append_ultrasonic_obs": args.append_ultrasonic_obs,
                 "render_camera_images": args.render_camera_images,
@@ -374,6 +378,7 @@ def main() -> None:
         lock_wrist=args.lock_wrist,
         wrist_lock_deg=args.wrist_lock_deg,
         real_joint_roms=args.real_joint_roms,
+        apply_joint_map_offsets=args.apply_joint_map_offsets,
         real2sim_noise=args.real2sim_noise,
         append_ultrasonic_obs=args.append_ultrasonic_obs,
         render_camera_images=args.render_camera_images,

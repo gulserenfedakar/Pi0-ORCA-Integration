@@ -72,6 +72,7 @@ def make_eval_env(
     lock_wrist: bool = False,
     wrist_lock_deg: float = 0.0,
     real_joint_roms: bool = False,
+    apply_joint_map_offsets: bool = False,
     real2sim_noise: bool = False,
     append_ultrasonic_obs: bool = False,
     render_camera_images: bool = False,
@@ -85,7 +86,7 @@ def make_eval_env(
             drop_height=drop_height,
         )
         if real_joint_roms:
-            apply_physical_joint_roms_to_base_env(env)
+            apply_physical_joint_roms_to_base_env(env, apply_joint_map_offsets=apply_joint_map_offsets)
         if action == "relative":
             env = RelativeJointTargetAction(env, max_delta_frac=max_delta_frac)
         if lock_wrist or real_joint_roms or real2sim_noise or append_ultrasonic_obs or render_camera_images:
@@ -94,6 +95,7 @@ def make_eval_env(
                 lock_wrist=lock_wrist,
                 wrist_lock_deg=wrist_lock_deg,
                 real_joint_roms=real_joint_roms,
+                apply_joint_map_offsets=apply_joint_map_offsets,
                 real2sim_noise=real2sim_noise,
                 append_ultrasonic_obs=append_ultrasonic_obs,
                 render_camera_images=render_camera_images,
@@ -128,6 +130,7 @@ def evaluate_run_dir(
         lock_wrist = bool(cfg.get("lock_wrist", False))
         wrist_lock_deg = float(cfg.get("wrist_lock_deg", 0.0))
         real_joint_roms = bool(cfg.get("real_joint_roms", False))
+        apply_joint_map_offsets = bool(cfg.get("apply_joint_map_offsets", False))
         real2sim_noise = bool(cfg.get("real2sim_noise", False))
         append_ultrasonic_obs = bool(cfg.get("append_ultrasonic_obs", False))
     else:
@@ -141,6 +144,7 @@ def evaluate_run_dir(
         lock_wrist = "real2sim" in name_lower or "locked" in name_lower
         wrist_lock_deg = 0.0
         real_joint_roms = "real2sim" in name_lower or "locked" in name_lower
+        apply_joint_map_offsets = False
         real2sim_noise = "real2sim" in name_lower
         append_ultrasonic_obs = "70d" in name_lower
 
@@ -215,6 +219,7 @@ def evaluate_run_dir(
                 lock_wrist=lock_wrist,
                 wrist_lock_deg=wrist_lock_deg,
                 real_joint_roms=real_joint_roms,
+                apply_joint_map_offsets=apply_joint_map_offsets,
                 real2sim_noise=real2sim_noise,
                 append_ultrasonic_obs=append_ultrasonic_obs,
                 render_camera_images=render_camera_images,

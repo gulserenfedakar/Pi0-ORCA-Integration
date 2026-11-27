@@ -18,11 +18,13 @@ Directly integrates Joe's `real2sim-cameras` branch (`21f7aec`) from `SEP730-Dex
     neighbor rays (exact `ultrasonic_reading_specular` / `twin.py:echo` geometry with `max_incidence_deg = 25.0`,
     `range_offset_m = +0.0029`, `min_range_m = 0.020`), and passes hits through the calibrated 10 Hz
     HC-SR04 dead-zone, bistatic tilt dropout, curved-finger deflection, and 3-tap median + 150 mm filter.
-  - Hardware-Aligned Joint Mapping & Locked Wrist (`real2sim/hand/joint_map.py` & `policy_run08.yaml`):
-    * Locks the wrist at physical neutral `-9.6 deg` (`wrist_lock_deg = -9.6`).
-    * Applies `joint_map.py` offsets (`ring_abd: -10.0 deg`, `pinky_abd: -14.0 deg`) and physical
-      `config.yaml` ROM limits (`t-mcp` [-5, +40] deg, `t-abd` [-20, +35] deg, `p-abd` [-30, +30] core deg
-      -> [-44, +16] sim deg) BEFORE `RelativeJointTargetAction` caches `_low`, `_high`, `_span`.
+  - Hardware-Aligned Joint Mapping & Locked Wrist (`real2sim/hand/joint_map.py` & `policy_to_replay.py`):
+    * Commands wrist actuator at `0.0 deg` (`wrist_lock_deg = 0.0`), which settles under `kp=2.0` gravity
+      to `~ -10 deg`, matching the physical `-9.6 deg` neutral angle and Joe's `policy_to_replay.py`.
+    * Applies physical `config.yaml` ROM limits (`t-mcp` [-5, +40] deg, `t-abd` [-20, +35] deg, `p-abd`
+      [-30, +30] deg) BEFORE `RelativeJointTargetAction` caches `_low`, `_high`, `_span`.
+    * Keeps `joint_map.py` offsets (`ring_abd: -10.0 deg`, `pinky_abd: -14.0 deg`) for sim-to-real replay
+      only (`apply_joint_map_offsets=False` by default during RL training, per Joe's setup).
 """
 
 from __future__ import annotations
@@ -587,7 +589,7 @@ class CalibratedAprilTagCameraWrapper:
 def apply_physical_joint_roms_to_base_env(
     base_env: Any,
     *,
-    apply_joint_map_offsets: bool = True,
+    apply_joint_map_offsets: bool = False,
 ) -> dict[str, Tuple[float, float]]:
     """Apply physical ORCA hand ROM limits (and `real2sim/hand/joint_map.py` offsets) to `base_env.model`
     BEFORE wrapping with `RelativeJointTargetAction`.
@@ -641,7 +643,7 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
     """Gymnasium wrapper implementing Joe's `real2sim-cameras` setup:
     - Scene `us_0..us_24` ultrasonic rangefinders with 1 mm neighbor-ray specular normal check (`camlib.py` / `twin.py`)
     - Calibrated `top` & `side` camera AprilTag visibility (`cube_tags_layout.json`) and `cube_pose_fused` fusion
-    - Locked wrist at `-9.6 deg` (or configurable `wrist_lock_deg`) and `joint_map.py` physical ROM limits.
+    - Locked wrist at `0.0 deg` command (`~ -10 deg` under `kp=2.0` gravity sag) and physical ROM limits (`joint_map.py` offsets replay-only by default).
     """
 
     US_POS_WORLD_M = np.array([0.1069, -0.0107, 0.2010], dtype=np.float64)
@@ -654,7 +656,7 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
         lock_wrist: bool = True,
         wrist_lock_deg: float = 0.0,
         real_joint_roms: bool = True,
-        apply_joint_map_offsets: bool = True,
+        apply_joint_map_offsets: bool = False,
         real2sim_noise: bool = True,
         append_ultrasonic_obs: bool = False,
         render_camera_images: bool = False,

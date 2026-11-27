@@ -51,21 +51,32 @@ TARGETS = [
         "ppo_ideal_locked_wrist_68d_10000000_seed2",
         "Ideal Locked-Wrist 68D (84.0% Held)",
         "rollout_ideal_locked_wrist_68d_seed2.gif",
+        20_000,
     ),
     (
         "ppo_real2sim_camera_68d_10000000_seed2",
         "Real2Sim Camera 68D (77.0% Held)",
         "rollout_real2sim_camera_68d_seed2.gif",
+        20_010,
     ),
     (
         "ppo_real2sim_camera_ultrasonic_70d_10000000_seed0",
         "Real2Sim Cam+Ultrasonic 70D (60.5% Held)",
         "rollout_real2sim_camera_ultrasonic_70d_seed0.gif",
+        20_020,
     ),
 ]
 
 
-def _render_side_by_side(renderer: mujoco.Renderer, data: mujoco.MjData, label: str, step: int, ang_deg: float, streak: int, is_success: bool) -> Image.Image:
+def _render_side_by_side(
+    renderer: mujoco.Renderer,
+    data: mujoco.MjData,
+    label: str,
+    step: int,
+    ang_deg: float,
+    streak: int,
+    is_success: bool,
+) -> Image.Image:
     renderer.update_scene(data, camera="top")
     top_rgb = renderer.render().copy()
     renderer.update_scene(data, camera="side")
@@ -81,12 +92,12 @@ def _render_side_by_side(renderer: mujoco.Renderer, data: mujoco.MjData, label: 
     status = "SUCCESS (HELD 25/25)" if is_success else f"Hold: {streak}/25"
     status_color = (74, 222, 128) if is_success else (248, 250, 252)
     draw.text((10, 9), f"{label}  |  Step {step:03d}  |  Err {ang_deg:5.1f} deg  |  {status}", fill=status_color)
-    draw.text((8, bar_h + 6), "TOP CAM", fill=(255, 255, 255))
+    draw.text((8, bar_h + 6), "TOP CAM", fill=(15, 23, 42))
     draw.text((w // 2 + 8, bar_h + 6), "SIDE CAM", fill=(255, 255, 255))
     return canvas
 
 
-def record_run(run_dir: Path, label: str, out_gif: Path) -> None:
+def record_run(run_dir: Path, label: str, out_gif: Path, seed_offset: int) -> None:
     if not run_dir.exists():
         print(f"Skipping missing run_dir: {run_dir}")
         return
@@ -110,63 +121,69 @@ def record_run(run_dir: Path, label: str, out_gif: Path) -> None:
                 lock_wrist=bool(cfg.get("lock_wrist", True)),
                 wrist_lock_deg=float(cfg.get("wrist_lock_deg", 0.0)),
                 real_joint_roms=bool(cfg.get("real_joint_roms", True)),
+                apply_joint_map_offsets=bool(cfg.get("apply_joint_map_offsets", True)),
                 real2sim_noise=bool(cfg.get("real2sim_noise", False)),
                 append_ultrasonic_obs=bool(cfg.get("append_ultrasonic_obs", False)),
-                seed=20_000,
+                seed=seed_offset,
             )
         ]
     )
+    vn = None
     if norm_path.exists():
-        venv = VecNormalize.load(str(norm_path), venv)
-        venv.training = False
-        venv.norm_reward = False
+        vn = VecNormalize.load(str(norm_path), venv)
+        vn.training = False
+        vn.norm_reward = False
 
-    base_env = venv.venv.envs[0].unwrapped if hasattr(venv, "venv") else venv.envs[0].unwrapped
+    # Step raw_env directly so DummyVecEnv NEVER auto-resets base_env.data on the final success frame!
+    raw_env = venv.envs[0]
+    base_env = raw_env.unwrapped
 
-    # Pick a deterministic seed with initial angle >= 90 deg that achieves held success
-    chosen_seed = 20_000
-    for ep in range(40):
-        s = 20_000 + ep
-        venv.seed(s)
-        obs = venv.reset()
+    def _norm(o: np.ndarray) -> np.ndarray:
+        arr = np.asarray(o, dtype=np.float64)[None, :]
+        return vn.normalize_obs(arr) if vn is not None else arr
+
+    # Pick a deterministic seed with initial angle >= 100 deg that achieves held success
+    chosen_seed = seed_offset
+    for ep in range(50):
+        s = seed_offset + ep
+        raw_obs, _ = raw_env.reset(seed=s)
         init_ang = float(np.rad2deg(base_env._red_face_up_angle_rad()))
-        if init_ang < 85.0:
+        if init_ang < 100.0:
             continue
         solved = False
         for _ in range(base_env.max_episode_steps):
-            act, _ = model.predict(obs, deterministic=True)
-            obs, _, dones, infos = venv.step(act)
-            if dones[0]:
-                solved = bool(infos[0].get("is_success", False))
+            act, _ = model.predict(_norm(raw_obs), deterministic=True)
+            raw_obs, _, terminated, truncated, inf = raw_env.step(act[0])
+            if terminated or truncated:
+                solved = bool(inf.get("is_success", False))
                 break
         if solved:
             chosen_seed = s
             break
 
     renderer = mujoco.Renderer(base_env.model, height=240, width=320)
-    venv.seed(chosen_seed)
-    obs = venv.reset()
+    raw_obs, _ = raw_env.reset(seed=chosen_seed)
     frames: list[Image.Image] = []
 
     ang0 = float(np.rad2deg(base_env._red_face_up_angle_rad()))
     frames.append(_render_side_by_side(renderer, base_env.data, label, 0, ang0, 0, False))
 
     for step_i in range(1, base_env.max_episode_steps + 1):
-        act, _ = model.predict(obs, deterministic=True)
-        obs, _, dones, infos = venv.step(act)
-        inf = infos[0]
+        act, _ = model.predict(_norm(raw_obs), deterministic=True)
+        raw_obs, _, terminated, truncated, inf = raw_env.step(act[0])
+        done = bool(terminated or truncated)
         ang = float(np.rad2deg(inf.get("red_face_up_angle_rad", base_env._red_face_up_angle_rad())))
         streak = int(inf.get("success_streak", 0))
         succ = bool(inf.get("is_success", False))
-        if step_i % 2 == 0 or dones[0]:
+        if step_i % 2 == 0 or done:
             frames.append(_render_side_by_side(renderer, base_env.data, label, step_i, ang, streak, succ))
-        if dones[0]:
-            for _ in range(12):
+        if done:
+            for _ in range(15):
                 frames.append(frames[-1])
             break
 
     renderer.close()
-    venv.close()
+    raw_env.close()
 
     out_gif.parent.mkdir(parents=True, exist_ok=True)
     frames[0].save(
@@ -175,15 +192,16 @@ def record_run(run_dir: Path, label: str, out_gif: Path) -> None:
         append_images=frames[1:],
         duration=60,
         loop=0,
-        optimize=True,
+        optimize=False,
+        disposal=2,
     )
-    print(f"Saved {out_gif} ({len(frames)} frames, seed={chosen_seed})")
+    print(f"Saved {out_gif} ({len(frames)} frames, seed={chosen_seed}, final_err={ang:.1f}deg, succ={succ})")
 
 
 def main() -> None:
     out_dir = REPO_ROOT / "results" / "rollouts"
-    for run_name, label, gif_name in TARGETS:
-        record_run(REPO_ROOT / "runs" / run_name, label, out_dir / gif_name)
+    for run_name, label, gif_name, seed_off in TARGETS:
+        record_run(REPO_ROOT / "runs" / run_name, label, out_dir / gif_name, seed_off)
 
 
 if __name__ == "__main__":
