@@ -33,6 +33,19 @@ for cand_sim in [
 
 from scripts.evaluate_rl_reorient import make_eval_env
 
+# Compatibility shim for VecNormalize pickles saved while train_rl_reorient.py patched __bit_generator_ctor in __main__
+try:
+    import numpy.random._pickle as _np_pickle
+
+    _orig_bg_ctor = _np_pickle.__bit_generator_ctor
+
+    def _compat_bg_ctor(bit_generator_name="MT19937"):
+        if isinstance(bit_generator_name, type):
+            bit_generator_name = bit_generator_name.__name__
+        return _orig_bg_ctor(bit_generator_name)
+except Exception:
+    pass
+
 TARGETS = [
     (
         "ppo_ideal_locked_wrist_68d_10000000_seed2",
