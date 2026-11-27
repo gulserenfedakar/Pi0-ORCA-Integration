@@ -36,7 +36,8 @@ SCENE_MODE="${SCENE_MODE:-real2sim}"
 mkdir -p logs runs
 
 if command -v module &>/dev/null; then
-    module load python/3.11 scipy-stack mujoco 2>/dev/null || module load mujoco 2>/dev/null || true
+    module load python/3.11 scipy-stack 2>/dev/null || module load python/3.11 2>/dev/null || true
+    module load mujoco 2>/dev/null || true
 fi
 
 if [ -f "$HOME/orca_rl_venv/bin/activate" ]; then
