@@ -17,6 +17,23 @@ from pathlib import Path
 
 import numpy as np
 import torch
+
+# Ensure checkpoints pickled under NumPy 2.x (numpy._core, PCG64 class) load cleanly on NumPy 1.x
+if not hasattr(np, "_core") and hasattr(np, "core"):
+    sys.modules.setdefault("numpy._core", np.core)
+    sys.modules.setdefault("numpy._core.numeric", np.core.numeric)
+    sys.modules.setdefault("numpy._core.multiarray", np.core.multiarray)
+    sys.modules.setdefault("numpy._core._multiarray_umath", np.core._multiarray_umath)
+try:
+    import numpy.random._pickle as _np_pickle
+    _orig_bg_ctor = _np_pickle.__bit_generator_ctor
+    def _compat_bg_ctor(bit_generator_name="MT19937"):
+        if isinstance(bit_generator_name, type):
+            bit_generator_name = bit_generator_name.__name__
+        return _orig_bg_ctor(bit_generator_name)
+    _np_pickle.__bit_generator_ctor = _compat_bg_ctor
+except Exception:
+    pass
 from stable_baselines3 import PPO, SAC, TD3
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
@@ -90,6 +107,7 @@ def make_eval_env(
 def evaluate_run_dir(
     run_dir: Path,
     n_episodes: int = 200,
+    override_scene: str | None = None,
     override_lock_wrist: bool | None = None,
     override_wrist_lock_deg: float | None = None,
     override_real_joint_roms: bool | None = None,
@@ -126,6 +144,12 @@ def evaluate_run_dir(
         real2sim_noise = "real2sim" in name_lower
         append_ultrasonic_obs = "70d" in name_lower
 
+    if override_scene == "real2sim":
+        scene_file = "scene_right_cube_orientation_real2sim.xml"
+        drop_height = 0.13
+    elif override_scene == "plain":
+        scene_file = "scene_right_cube_orientation.xml"
+        drop_height = 0.05
     if override_lock_wrist is not None:
         lock_wrist = override_lock_wrist
     if override_wrist_lock_deg is not None:
@@ -138,6 +162,33 @@ def evaluate_run_dir(
         append_ultrasonic_obs = override_append_ultrasonic_obs
 
     model_path = run_dir / "best_model.zip"
+    norm_path = run_dir / "best_vecnormalize.pkl"
+    if not norm_path.exists():
+        norm_path = run_dir / "vecnormalize.pkl"
+        # Check if best_model.zip was saved at an earlier step than final_model.zip (before best_vecnormalize.pkl was introduced)
+        eval_npz = run_dir / "evaluations.npz"
+        ckpt_dir = run_dir / "checkpoints"
+        if model_path.exists() and eval_npz.exists() and ckpt_dir.exists():
+            try:
+                ev = np.load(eval_npz)
+                ts = ev["timesteps"]
+                mean_rews = ev["results"].mean(axis=1)
+                best_ts = int(ts[int(np.argmax(mean_rews))])
+                last_ts = int(ts[-1])
+                if best_ts < last_ts:
+                    # Find closest checkpoint vecnormalize to best_ts
+                    candidates = []
+                    for pkl_p in ckpt_dir.glob("*_vecnormalize_*_steps.pkl"):
+                        parts = pkl_p.stem.split("_")
+                        for tok in parts:
+                            if tok.isdigit():
+                                candidates.append((abs(int(tok) - best_ts), pkl_p))
+                                break
+                    if candidates:
+                        candidates.sort(key=lambda x: x[0])
+                        norm_path = candidates[0][1]
+            except Exception:
+                pass
     if not model_path.exists():
         model_path = run_dir / "final_model.zip"
     if not model_path.exists():
@@ -170,7 +221,6 @@ def evaluate_run_dir(
             )
         ]
     )
-    norm_path = run_dir / "vecnormalize.pkl"
     if norm_path.exists():
         venv = VecNormalize.load(str(norm_path), venv)
         venv.training = False
@@ -275,13 +325,14 @@ def main() -> None:
     parser.add_argument("--runs-dir", type=Path, default=REPO_ROOT / "models")
     parser.add_argument("--episodes", type=int, default=200)
     parser.add_argument("--out-csv", type=Path, default=REPO_ROOT / "results" / "rl_reorient_benchmark.csv")
+    parser.add_argument("--scene", choices=["auto", "real2sim", "plain"], default=None)
     parser.add_argument("--lock-wrist", action="store_true", default=None)
     parser.add_argument("--wrist-lock-deg", type=float, default=None)
     parser.add_argument("--real-joint-roms", action="store_true", default=None)
     parser.add_argument("--real2sim-noise", action="store_true", default=None)
     parser.add_argument("--append-ultrasonic-obs", action="store_true", default=None)
     parser.add_argument("--render-camera-images", action="store_true", default=False)
-    parser.add_argument("--cross-eval", action="store_true", default=True, help="Also cross-evaluate ideal locked-wrist policies under calibrated camera noise")
+    parser.add_argument("--cross-eval", action="store_true", default=True, help="Also cross-evaluate ideal 68D policies under calibrated camera noise")
     args = parser.parse_args()
 
     if not args.runs_dir.exists():
@@ -294,6 +345,7 @@ def main() -> None:
             res = evaluate_run_dir(
                 sub,
                 n_episodes=args.episodes,
+                override_scene=args.scene,
                 override_lock_wrist=args.lock_wrist,
                 override_wrist_lock_deg=args.wrist_lock_deg,
                 override_real_joint_roms=args.real_joint_roms,
@@ -309,14 +361,15 @@ def main() -> None:
                     f"Align={res['Goal_Align_Rate_pct']}% | HoldStreak={res['Mean_Hold_Streak_steps']}/25 | "
                     f"Drop={res['Cube_Drop_Rate_pct']}% | FinalAng={res['Final_Angle_Error_deg']}deg"
                 )
-                # Joe's requested cross-eval: ideal locked-wrist policy evaluated under calibrated camera noise (Group B)
-                if args.cross_eval and res["Lock_Wrist"] and not res["Real2Sim_Noise"] and res["Obs_Dim"] == 68:
+                # Joe's requested cross-eval: ideal 68D policy evaluated under calibrated camera noise
+                if args.cross_eval and not res["Real2Sim_Noise"] and res["Obs_Dim"] == 68:
                     cross = evaluate_run_dir(
                         sub,
                         n_episodes=args.episodes,
-                        override_lock_wrist=True,
+                        override_scene=args.scene or "real2sim",
+                        override_lock_wrist=args.lock_wrist if args.lock_wrist is not None else res["Lock_Wrist"],
                         override_wrist_lock_deg=args.wrist_lock_deg,
-                        override_real_joint_roms=True,
+                        override_real_joint_roms=args.real_joint_roms,
                         override_real2sim_noise=True,
                         override_append_ultrasonic_obs=False,
                         render_camera_images=args.render_camera_images,

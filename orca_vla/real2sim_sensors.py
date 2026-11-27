@@ -652,7 +652,7 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
         env: gym.Env,
         *,
         lock_wrist: bool = True,
-        wrist_lock_deg: float = -9.6,
+        wrist_lock_deg: float = 0.0,
         real_joint_roms: bool = True,
         apply_joint_map_offsets: bool = True,
         real2sim_noise: bool = True,
@@ -673,6 +673,7 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
         self.render_width = int(render_width)
         self.render_height = int(render_height)
         self._cam_renderer: Any = None
+        self._last_us_hit_body: str = "none"
 
         self.us_sensor = CalibratedUltrasonicSensor(seed=seed)
         self.cam_sensor = CalibratedAprilTagCameraWrapper(seed=seed)
@@ -749,7 +750,8 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
             self.observation_space = spaces.Box(low=low, high=high, dtype=np.float64)
 
     def _apply_locked_wrist_pose(self) -> None:
-        """Lock wrist at `wrist_lock_deg` (default `-9.6 deg` matching `policy_run07/08.yaml`)."""
+        """Lock wrist actuator command at `wrist_lock_deg` (default `0.0 deg`, which dynamically sags to ~`-9.9 deg`
+        under gravity with `kp=2.0`, matching physical `-9.6 deg` and Joe's `policy_to_replay.py` line 151)."""
         if not self.lock_wrist or abs(self.wrist_lock_deg) < 1e-8:
             return
         base_env = self.env.unwrapped
@@ -814,7 +816,7 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
                 hit_d = float(mujoco.mj_ray(m, d, cam_pos, -view_dir, self._ray_geomgroup, 1, -1, geomid))
                 if hit_d > 0.0 and geomid[0] >= 0:
                     hit_bid = int(m.geom_bodyid[geomid[0]])
-                    if hit_bid == cube_body_id or hit_d >= dist_to_cam - 0.006:
+                    if hit_bid == cube_body_id:
                         vis_ids.append(tid)
             vis_per_cam.append(vis_ids)
         return vis_per_cam[0], vis_per_cam[1]
@@ -851,27 +853,23 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
                     continue
 
                 hit_bid = int(m.geom_bodyid[g[0]])
-                if hit_bid == cube_body_id and R_cube is not None:
-                    max_cos = max(abs(float(np.dot(R_cube[:, axis], v))) for axis in range(3))
-                    inc_deg = math.degrees(math.acos(min(1.0, max_cos)))
-                else:
-                    # Two 1 mm offset rays beside the primary ray to measure local surface normal (`camlib.py` line 183)
-                    p = o + t * v
-                    pts = []
-                    for e in (R[:, 0], R[:, 1]):
-                        g2 = np.array([-1], dtype=np.int32)
-                        t2 = float(mujoco.mj_ray(m, d, o + 1e-3 * e, v, self._ray_geomgroup, 1, -1, g2))
-                        if t2 <= 0.0 or g2[0] != g[0]:
-                            break
-                        pts.append(o + 1e-3 * e + t2 * v)
-                    if len(pts) < 2:
-                        continue
-                    n = np.cross(pts[0] - p, pts[1] - p)
-                    n_norm = float(np.linalg.norm(n))
-                    if n_norm < 1e-12:
-                        continue
-                    n /= n_norm
-                    inc_deg = math.degrees(math.acos(min(1.0, abs(float(np.dot(n, v))))))
+                # Two 1 mm offset rays beside the primary ray to measure local surface normal (`camlib.py` line 183)
+                p = o + t * v
+                pts = []
+                for e in (R[:, 0], R[:, 1]):
+                    g2 = np.array([-1], dtype=np.int32)
+                    t2 = float(mujoco.mj_ray(m, d, o + 1e-3 * e, v, self._ray_geomgroup, 1, -1, g2))
+                    if t2 <= 0.0 or g2[0] != g[0]:
+                        break
+                    pts.append(o + 1e-3 * e + t2 * v)
+                if len(pts) < 2:
+                    continue
+                n = np.cross(pts[0] - p, pts[1] - p)
+                n_norm = float(np.linalg.norm(n))
+                if n_norm < 1e-12:
+                    continue
+                n /= n_norm
+                inc_deg = math.degrees(math.acos(min(1.0, abs(float(np.dot(n, v))))))
 
                 if inc_deg > spec_limit_deg:
                     continue
@@ -894,22 +892,35 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
                 dist_m = float(mujoco.mj_ray(m, d, self.US_POS_WORLD_M, ray_dir, self._ray_geomgroup, 1, -1, geomid))
                 if dist_m <= 0.0 or geomid[0] < 0:
                     continue
+                ref = np.array([0.0, 0.0, 1.0]) if abs(ray_dir[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
+                e1 = np.cross(ref, ray_dir)
+                e1 /= max(1e-8, float(np.linalg.norm(e1)))
+                e2 = np.cross(ray_dir, e1)
+                p = self.US_POS_WORLD_M + dist_m * ray_dir
+                pts = []
+                for e in (e1, e2):
+                    g2 = np.array([-1], dtype=np.int32)
+                    t2 = float(mujoco.mj_ray(m, d, self.US_POS_WORLD_M + 1e-3 * e, ray_dir, self._ray_geomgroup, 1, -1, g2))
+                    if t2 <= 0.0 or g2[0] != geomid[0]:
+                        break
+                    pts.append(self.US_POS_WORLD_M + 1e-3 * e + t2 * ray_dir)
+                if len(pts) < 2:
+                    continue
+                n = np.cross(pts[0] - p, pts[1] - p)
+                n_norm = float(np.linalg.norm(n))
+                if n_norm < 1e-12:
+                    continue
+                n /= n_norm
+                inc_deg = math.degrees(math.acos(min(1.0, abs(float(np.dot(n, ray_dir))))))
+                if inc_deg > spec_limit_deg:
+                    continue
                 hit_bid = int(m.geom_bodyid[geomid[0]])
                 if hit_bid == cube_body_id:
                     hit_body = "cube"
-                    if R_cube is not None:
-                        max_cos = max(abs(float(np.dot(R_cube[:, axis], ray_dir))) for axis in range(3))
-                        inc_deg = math.degrees(math.acos(min(1.0, max_cos)))
-                    else:
-                        inc_deg = 0.0
-                    if inc_deg > spec_limit_deg:
-                        continue
                 elif hit_bid == 0:
                     hit_body = "bench"
-                    inc_deg = 0.0
                 else:
                     hit_body = "hand"
-                    inc_deg = 0.0
                 if best_dist_m is None or dist_m < best_dist_m:
                     best_dist_m = dist_m
                     best_inc_deg = inc_deg
@@ -923,12 +934,19 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
 
     def _process_obs(self, obs: np.ndarray, info: dict[str, Any]) -> np.ndarray:
         obs = obs.copy()
-        surf_dist_mm, inc_deg, hit_body = self._cast_ultrasonic_cone()
-        raw_us_mm, (us_d_norm, us_valid) = self.us_sensor.step_100hz(surf_dist_mm, inc_deg, hit_body)
-        info["ultrasonic_raw_mm"] = raw_us_mm
-        info["ultrasonic_d_norm"] = us_d_norm
-        info["ultrasonic_valid"] = us_valid
-        info["ultrasonic_hit_body"] = hit_body
+        us_d_norm, us_valid = 0.0, 0.0
+        if self.append_ultrasonic_obs:
+            us_hold = max(1, self.us_sensor.cfg.control_hz // self.us_sensor.cfg.ultrasonic_hz)
+            if self.us_sensor._step_counter % us_hold == 0:
+                surf_dist_mm, inc_deg, hit_body = self._cast_ultrasonic_cone()
+                self._last_us_hit_body = hit_body
+            else:
+                surf_dist_mm, inc_deg, hit_body = None, None, self._last_us_hit_body
+            raw_us_mm, (us_d_norm, us_valid) = self.us_sensor.step_100hz(surf_dist_mm, inc_deg, hit_body)
+            info["ultrasonic_raw_mm"] = raw_us_mm
+            info["ultrasonic_d_norm"] = us_d_norm
+            info["ultrasonic_valid"] = us_valid
+            info["ultrasonic_hit_body"] = self._last_us_hit_body
 
         if self.render_camera_images:
             base_env = self.env.unwrapped
@@ -943,9 +961,14 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
                 info["camera_side_rgb"] = self._cam_renderer.render("side")
 
         if self.real2sim_noise and obs.shape[0] >= 51:
-            mean_finger_flex = float(np.mean(np.abs(obs[0:16])))
+            # obs[0] is right_wrist; finger joints are obs[1:17]
+            mean_finger_flex = float(np.mean(np.abs(obs[1:17])))
             fingers_occluding = mean_finger_flex > 0.35
-            tags_top, tags_side = self._detect_visible_tags_top_and_side()
+            cam_hold = max(1, self.cam_sensor.cfg.control_hz // self.cam_sensor.cfg.camera_hz)
+            if self.cam_sensor._step_counter % cam_hold == 0:
+                tags_top, tags_side = self._detect_visible_tags_top_and_side()
+            else:
+                tags_top, tags_side = self.cam_sensor._last_tags_top, self.cam_sensor._last_tags_side
             noisy_pos, noisy_quat, noisy_qvel, noisy_n, noisy_align, tag_vis = self.cam_sensor.perturb_full_cube_state(
                 obs[17:20],
                 obs[20:24],
@@ -963,6 +986,7 @@ class Real2SimSensorAndKinematicWrapper(gym.Wrapper):
             info["tags_top"] = tags_top
             info["tags_side"] = tags_side
             info["observed_red_face_up_angle_rad"] = float(math.acos(np.clip(noisy_align, -1.0, 1.0)))
+            info["observed_cube_ang_speed_rad_s"] = float(np.linalg.norm(noisy_qvel[3:]))
 
         if self.append_ultrasonic_obs:
             obs = np.concatenate([obs, np.array([us_d_norm, us_valid], dtype=np.float64)])

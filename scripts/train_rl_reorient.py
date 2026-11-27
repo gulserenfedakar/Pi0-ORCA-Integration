@@ -31,8 +31,27 @@ import sys
 import time
 from pathlib import Path
 
+import io
+import zipfile
 import numpy as np
 import torch
+
+# Ensure checkpoints pickled under NumPy 2.x (numpy._core, PCG64 class) load cleanly on NumPy 1.x
+if not hasattr(np, "_core") and hasattr(np, "core"):
+    sys.modules.setdefault("numpy._core", np.core)
+    sys.modules.setdefault("numpy._core.numeric", np.core.numeric)
+    sys.modules.setdefault("numpy._core.multiarray", np.core.multiarray)
+    sys.modules.setdefault("numpy._core._multiarray_umath", np.core._multiarray_umath)
+try:
+    import numpy.random._pickle as _np_pickle
+    _orig_bg_ctor = _np_pickle.__bit_generator_ctor
+    def _compat_bg_ctor(bit_generator_name="MT19937"):
+        if isinstance(bit_generator_name, type):
+            bit_generator_name = bit_generator_name.__name__
+        return _orig_bg_ctor(bit_generator_name)
+    _np_pickle.__bit_generator_ctor = _compat_bg_ctor
+except Exception:
+    pass
 from stable_baselines3 import PPO, SAC, TD3
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.logger import configure
@@ -76,7 +95,7 @@ def make_env(
     max_delta_frac: float = 0.05,
     scene_mode: str = "auto",
     lock_wrist: bool = False,
-    wrist_lock_deg: float = 9.6,
+    wrist_lock_deg: float = 0.0,
     real_joint_roms: bool = False,
     real2sim_noise: bool = False,
     append_ultrasonic_obs: bool = False,
@@ -184,8 +203,9 @@ def build_model(
             **ppo_kwargs,
         )
         if resume_path is not None:
-            old_model = PPO.load(str(resume_path), device=device)
-            _extend_linear_input_weights(fresh.policy, old_model.policy.state_dict())
+            with zipfile.ZipFile(str(resume_path), "r") as zf:
+                old_sd = torch.load(io.BytesIO(zf.read("policy.pth")), map_location=device)
+            _extend_linear_input_weights(fresh.policy, old_sd)
             if hasattr(fresh.policy, "log_std") and isinstance(fresh.policy.log_std, torch.nn.Parameter):
                 with torch.no_grad():
                     fresh.policy.log_std.clamp_(min=math.log(0.50))
@@ -301,13 +321,13 @@ def main() -> None:
     parser.add_argument("--n-envs", type=int, default=16, help="Number of parallel simulation processes")
     parser.add_argument("--init", choices=["random", "down"], default="random")
     parser.add_argument("--eval-every", type=int, default=200_000)
-    parser.add_argument("--eval-episodes", type=int, default=20)
+    parser.add_argument("--eval-episodes", type=int, default=50)
     parser.add_argument("--checkpoint-every", type=int, default=500_000)
     parser.add_argument("--action", choices=["relative", "absolute"], default="relative")
     parser.add_argument("--max-delta-frac", type=float, default=0.05)
     parser.add_argument("--scene", choices=["auto", "real2sim", "plain"], default="auto", help="Use Joe's real2sim bench scene (top/side cameras + 25 ultrasonic rangefinders)")
     parser.add_argument("--lock-wrist", action="store_true", help="Freeze 1-DoF wrist pitch actuator during training")
-    parser.add_argument("--wrist-lock-deg", type=float, default=-9.6, help="Locked wrist pitch angle in degrees (default: -9.6 deg matching physical hand neutral in policy_run07/08.yaml)")
+    parser.add_argument("--wrist-lock-deg", type=float, default=0.0, help="Locked wrist actuator command in degrees (default: 0.0 deg, dynamically sagging to ~-9.9 deg under kp=2.0 gravity to match physical -9.6 deg)")
     parser.add_argument("--real-joint-roms", action="store_true", help="Enforce physical hand thumb_mcp [-5, +40] deg bounds")
     parser.add_argument("--real2sim-noise", action="store_true", help="Enable calibrated dual-camera (top+side) AprilTag & ultrasonic Real2Sim noise")
     parser.add_argument("--append-ultrasonic-obs", action="store_true", help="Append 2D [us_d_norm, us_valid] to observation space (68D -> 70D)")
@@ -375,9 +395,12 @@ def main() -> None:
     class SyncNormEval(EvalCallback):
         def _on_step(self) -> bool:
             self.eval_env.obs_rms = self.training_env.obs_rms
+            if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
+                self.eval_env.seed(10_000 + args.seed)
             prev_best = self.best_mean_reward
             cont = super()._on_step()
             if self.best_mean_reward > prev_best:
+                self.training_env.save(str(out / "best_vecnormalize.pkl"))
                 self.training_env.save(str(out / "vecnormalize.pkl"))
             return cont
 
@@ -408,7 +431,9 @@ def main() -> None:
     t0 = time.time()
     model.learn(total_timesteps=args.steps, callback=[eval_cb, ckpt_cb])
     model.save(out / "final_model")
-    train_env.save(str(out / "vecnormalize.pkl"))
+    train_env.save(str(out / "final_vecnormalize.pkl"))
+    if not (out / "best_vecnormalize.pkl").exists():
+        train_env.save(str(out / "vecnormalize.pkl"))
     train_env.close()
     eval_env.close()
     print(f"Completed {args.algo.upper()} in {(time.time() - t0) / 60:.2f} min -> {out / 'progress.csv'}")

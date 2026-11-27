@@ -7,12 +7,12 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32G
-#SBATCH --time=08:00:00
+#SBATCH --time=12:00:00
 
 set -euo pipefail
 
 # 9-task matched 10M-step x 3-seed Sim-to-Real ablation array on Joe's real2sim bench scene
-# (top + side calibrated cameras, 25 ultrasonic rangefinders us_0..us_24, wrist locked at 9.6 deg):
+# (top + side calibrated cameras, 25 ultrasonic rangefinders us_0..us_24; ctrl=0.0 deg -> dynamic qpos ~-9.9 deg under kp=2.0 gravity sag):
 #   Tasks 0-2: PPO Ideal Locked-Wrist 68D (seeds 0, 1, 2)
 #   Tasks 3-5: PPO Real2Sim Top+Side Camera 68D (seeds 0, 1, 2)
 #   Tasks 6-8: PPO Real2Sim Top+Side Camera + 25-Ray Ultrasonic 70D (seeds 0, 1, 2)
@@ -30,13 +30,13 @@ SEED="${SEEDS[$SLURM_ARRAY_TASK_ID]}"
 STEPS="${STEPS:-10000000}"
 N_ENVS="${SLURM_CPUS_PER_TASK:-16}"
 INIT_MODE="${INIT_MODE:-random}"
-WRIST_LOCK_DEG="${WRIST_LOCK_DEG:--9.6}"
+WRIST_LOCK_DEG="${WRIST_LOCK_DEG:-0.0}"
 SCENE_MODE="${SCENE_MODE:-real2sim}"
 
 mkdir -p logs runs
 
 if command -v module &>/dev/null; then
-    module load python/3.11 2>/dev/null || true
+    module load python/3.11 scipy-stack mujoco 2>/dev/null || module load mujoco 2>/dev/null || true
 fi
 
 if [ -f "$HOME/orca_rl_venv/bin/activate" ]; then
@@ -48,7 +48,7 @@ fi
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
-export ORCA_SIM_ROOT="${ORCA_SIM_ROOT:-$HOME/ORCA-Dexterous-Hand-Simulation}"
+export ORCA_SIM_ROOT="${ORCA_SIM_ROOT:-$HOME/SEP730-Dexterous-Hand-Simulation}"
 
 EXTRA_FLAGS=(--scene "${SCENE_MODE}" --lock-wrist --wrist-lock-deg "${WRIST_LOCK_DEG}" --real-joint-roms)
 if [[ "${MODE}" == real2sim_* ]]; then
@@ -59,8 +59,11 @@ if [[ "${MODE}" == *_70d ]]; then
 fi
 
 if [[ "${USE_RESUME:-0}" == "1" ]]; then
-    RESUME_CKPT="models/drac_${ALGO}_10M/best_model.zip"
-    if [[ "${MODE}" == real2sim_* ]] && [ -f "${RESUME_CKPT}" ]; then
+    RESUME_CKPT="${RESUME_CKPT:-models/ppo_reorient_relative/final_model.zip}"
+    if [ ! -f "${RESUME_CKPT}" ]; then
+        RESUME_CKPT="models/drac_${ALGO}_10M/best_model.zip"
+    fi
+    if [ -f "${RESUME_CKPT}" ]; then
         EXTRA_FLAGS+=(--resume "${RESUME_CKPT}")
     fi
 fi
